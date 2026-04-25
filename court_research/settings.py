@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production-xyz123')
@@ -93,7 +94,7 @@ LOGOUT_REDIRECT_URL = '/auth/login/'
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-GROQ_API_KEY = config('GROQ_API_KEY', default='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')
+GROQ_API_KEY = config('GROQ_API_KEY', default='')
 VECTOR_STORE_PATH = BASE_DIR / 'vector_stores'
 os.makedirs(VECTOR_STORE_PATH, exist_ok=True)
 
