@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Access Restricted — CourtVision AI{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5 text-center py-5">
+        <div style="width:80px;height:80px;background:rgba(231,76,60,0.1);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;color:#e74c3c;margin-bottom:1.5rem">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="section-eyebrow" style="color:#e74c3c">Access Restricted</div>
+        <h2 class="section-title mb-3">Superuser Only</h2>
+        <p style="color:var(--text-muted);font-size:0.9rem;max-width:380px;margin:0 auto 0.75rem">
+            This action requires superuser privileges. Only platform administrators can upload or delete documents.
+        </p>
+        <p style="color:var(--text-muted);font-size:0.85rem;max-width:380px;margin:0 auto 2rem">
+            As a regular user you can <strong style="color:var(--text)">view, search, and research</strong> all documents.
+        </p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'documents:list' %}" class="btn btn-gold">
+                <i class="fas fa-folder-open me-2"></i>Browse Documents
+            </a>
+            <a href="{% url 'documents:search' %}" class="btn-outline-gold"
+               style="text-decoration:none;padding:0.5rem 1.25rem;border-radius:8px;display:inline-flex;align-items:center;gap:6px">
+                <i class="fas fa-search"></i>Search Cases
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

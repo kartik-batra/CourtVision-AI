@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Upload Document — CourtVision AI{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="mb-4">
+            <a href="{% url 'documents:list' %}" style="color:var(--text-muted);text-decoration:none;font-size:0.85rem">
+                <i class="fas fa-arrow-left me-1"></i>Back to Documents
+            </a>
+            <div class="section-eyebrow mt-2" >Document Ingestion</div>
+            <h2 class="section-title mb-0" data-i18n="nav_upload">Upload Legal Document</h2>
+            <p style="color:var(--text-muted);font-size:0.875rem;margin-top:4px" data-i18n="info_upload">The document will be processed by our AI engine for summary and research capabilities.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-file-upload me-2"></i><span data-i18n="label_file">Document Details</span>
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="label_title">Document Title *</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" data-i18n="label_type">Document Type</label>
+                            {{ form.document_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" data-i18n="label_case_no">Case Number</label>
+                            {{ form.case_number }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" data-i18n="label_court">Court Name</label>
+                            {{ form.court_name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" data-i18n="label_filed">Filing Date</label>
+                            {{ form.filing_date }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="label_description">Description</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" data-i18n="label_file_upload">File *</label>
+                        <div id="dropZone" style="border:2px dashed rgba(201,168,76,0.3);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.2s;position:relative" onclick="document.getElementById('id_file').click()">
+                            <div id="dropZoneContent">
+                                <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--gold);margin-bottom:0.75rem;display:block"></i>
+                                <div style="font-weight:600;color:var(--text);margin-bottom:4px" data-i18n="drop_file">Drop your file here or click to browse</div>
+                                <div style="font-size:0.78rem;color:var(--text-muted)" data-i18n="allowed_files">Only PDF files are allowed — Max 10MB</div>
+                            </div>
+                            <div id="fileSelected" style="display:none">
+                                <i class="fas fa-file-check" style="font-size:2rem;color:#2ecc71;margin-bottom:0.75rem;display:block"></i>
+                                <div id="fileName" style="font-weight:600;color:var(--text)"></div>
+                                <div id="fileSize" style="font-size:0.78rem;color:var(--text-muted)"></div>
+                            </div>
+                        </div>
+                        <div style="display:none">{{ form.file }}</div>
+                    </div>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger mb-3">
+                        {% for field, errors in form.errors.items %}{% for error in errors %}<div><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-gold w-100 py-2" id="submitBtn">
+                        <i class="fas fa-rocket me-2"></i><span data-i18n="btn_upload">Upload & Begin AI Analysis</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fileInput = document.getElementById('id_file');
+const dropZone = document.getElementById('dropZone');
+const dropContent = document.getElementById('dropZoneContent');
+const fileSelected = document.getElementById('fileSelected');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const submitBtn = document.getElementById('submitBtn');
+
+fileInput.addEventListener('change', function() {
+    if (this.files[0]) showFile(this.files[0]);
+});
+
+function showFile(f) {
+    fileName.textContent = f.name;
+    fileSize.textContent = (f.size / 1024).toFixed(1) + ' KB';
+    dropContent.style.display = 'none';
+    fileSelected.style.display = 'block';
+    dropZone.style.borderColor = 'rgba(46,204,113,0.5)';
+    dropZone.style.background = 'rgba(46,204,113,0.05)';
+}
+
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--gold)'; dropZone.style.background = 'rgba(201,168,76,0.05)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'rgba(201,168,76,0.3)'; dropZone.style.background = ''; });
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'rgba(201,168,76,0.3)';
+    const f = e.dataTransfer.files[0];
+    if (f) {
+        const dt = new DataTransfer(); dt.items.add(f);
+        fileInput.files = dt.files;
+        showFile(f);
+    }
+});
+
+document.getElementById('uploadForm').addEventListener('submit', function() {
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading & Processing...';
+    submitBtn.disabled = true;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Login — CourtVision AI{% endblock %}
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height:88vh">
+    <div class="col-md-5 col-lg-4">
+        <div class="text-center mb-4">
+            <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--navy);margin-bottom:1rem">
+                <i class="fas fa-balance-scale"></i>
+            </div>
+            <div class="section-eyebrow">Commercial Courts Intelligence</div>
+            <h1 class="section-title">CourtVision AI</h1>
+            <p style="color:var(--text-muted);font-size:0.875rem;margin-top:0.5rem">Sign in to your legal research workspace</p>
+        </div>
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="label_username">Username</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" data-i18n="label_password">Password</label>
+                        {{ form.password }}
+                    </div>
+                    <button type="submit" class="btn btn-gold w-100 py-2" data-i18n="btn_sign_in">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In to Platform
+                    </button>
+                </form>
+                <hr class="gold-divider">
+                <p class="text-center mb-0" style="font-size:0.875rem;color:var(--text-muted);padding-bottom:1rem">
+                    <span data-i18n="no_account">New to CourtVision AI?</span>
+                    <a href="{% url 'authentication:register' %}" style="color:var(--gold);text-decoration:none;font-weight:600" data-i18n="btn_create_account"> Create Account</a>
+                </p>
+
+                <p class="text-center mb-0" style="font-size:0.875rem;color:var(--text-muted)">
+                    <span data-i18n="label_forgot">Forgot Password?</span>
+                    <a href="{% url 'authentication:password_reset' %}" style="color:var(--gold);text-decoration:none;font-weight:600"> Reset Password</a>
+                </p>
+            </div>
+        </div>
+        <p class="text-center mt-3" style="font-size:0.72rem;color:var(--text-muted);opacity:0.6">Secured for authorized legal professionals only</p>
+    </div>
+</div>
+{% endblock %}

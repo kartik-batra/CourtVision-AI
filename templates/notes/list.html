@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% block title %}My Notes — CourtVision AI{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --tag-gold: #c9a84c; --tag-blue: #3498db; --tag-green: #2ecc71;
+    --tag-red: #e74c3c; --tag-purple: #9b59b6; --tag-orange: #e67e22;
+}
+.note-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.2rem 1.3rem;
+    transition: all 0.18s; cursor: pointer; position: relative;
+    display: flex; flex-direction: column; height: 100%;
+}
+.note-card:hover { border-color: rgba(201,168,76,0.5); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
+.note-card.pinned { border-color: rgba(201,168,76,0.4); background: rgba(201,168,76,0.04); }
+.note-title { font-family: 'Playfair Display', serif; font-size: 1.25em; font-weight: 700; color: var(--text); margin-bottom: 6px; line-height: 1.35; }
+.note-preview { font-size: 1rem; color: var(--text-muted); line-height: 1.6; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; margin-bottom: 0.75rem; }
+.note-meta { font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 0.68rem; font-weight: 600; }
+.pin-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: all 0.15s; opacity: 0.5; }
+.pin-btn:hover, .pin-btn.pinned { opacity: 1; color: var(--gold); }
+.note-actions { opacity: 1; display: flex; gap: 5px; }
+.note-action-btn { font-size: 0.68rem; padding: 3px 8px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; transition: all 0.15s; }
+.na-edit { background: rgba(201,168,76,0.1); color: var(--gold); border: 1px solid rgba(201,168,76,0.25); }
+.na-edit:hover { background: rgba(201,168,76,0.2); color: var(--gold); }
+.na-del { background: rgba(231,76,60,0.08); color: rgba(231,76,60,0.75); border: 1px solid rgba(231,76,60,0.2); }
+.na-del:hover { background: rgba(231,76,60,0.15); color: #e74c3c; }
+.stat-box { background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.18); border-radius: 10px; padding: 0.65rem 0.9rem; text-align: center; }
+.stat-box .n { font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--gold); line-height: 1; }
+.stat-box .l { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--slate); margin-top: 3px; }
+.tag-filter { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; text-decoration: none; transition: all 0.15s; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--text-muted); }
+.tag-filter:hover, .tag-filter.active { background: rgba(201,168,76,0.15); border-color: var(--gold); color: var(--gold); text-decoration: none; }
+.empty-state { text-align: center; padding: 4rem 1rem; }
+.empty-icon { width: 72px; height: 72px; background: rgba(201,168,76,0.08); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--gold); margin-bottom: 1.2rem; }
+/* Quick-note panel */
+#quickPanel { display: none; }
+#quickPanel.open { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+        <div class="section-eyebrow">Legal Notes</div>
+        <h2 class="section-title mb-0">My Notes</h2>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:4px">
+            Create notes for yourself
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="toggleQuickNote()" class="btn-ghost" id="quickBtn">
+            <i class="fas fa-bolt me-2" style="color:var(--gold)"></i>Quick Note
+        </button>
+        <a href="{% url 'notes:create' %}" class="btn btn-gold">
+            <i class="fas fa-plus me-2"></i>New Note
+        </a>
+    </div>
+</div>
+
+<!-- Quick Note Panel -->
+<div id="quickPanel" class="card mb-4" style="border-color:rgba(201,168,76,0.35)">
+    <div class="card-body p-4">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:0.75rem">
+            <i class="fas fa-bolt me-1"></i>Quick Note
+        </div>
+        <input type="text" id="qnTitle" class="form-control mb-2" placeholder="Note title…" style="font-weight:600">
+        <textarea id="qnContent" class="form-control mb-2" rows="3" placeholder="Start writing…"></textarea>
+        <div class="d-flex gap-2 align-items-center">
+            <input type="text" id="qnTag" class="form-control" placeholder="Tag (optional)" style="max-width:160px">
+            <button onclick="saveQuickNote()" class="btn btn-gold" id="qnSaveBtn">
+                <i class="fas fa-save me-1"></i>Save
+            </button>
+            <button onclick="toggleQuickNote()" class="btn-ghost">Cancel</button>
+            <span id="qnMsg" style="font-size:0.78rem;color:#2ecc71;display:none"><i class="fas fa-check me-1"></i>Saved!</span>
+        </div>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<form method="get" id="filterForm">
+    <div class="card mb-3" style="background:rgba(255,255,255,0.02)">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <div style="position:relative">
+                        <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--slate);font-size:0.8rem;pointer-events:none"></i>
+                        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search notes…" style="padding-left:30px" autocomplete="off">
+                    </div>
+                </div>
+                {% if linked_docs %}
+                <div class="col-md-3">
+                    <select name="doc" class="form-control form-select" style="font-size:0.82rem">
+                        <option value="">All Documents</option>
+                        {% for doc in linked_docs %}
+                        <option value="{{ doc.id }}" {% if active_doc == doc.id|stringformat:"s" %}selected{% endif %}>{{ doc.title|truncatechars:40 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-2">
+                    <select name="pinned" class="form-control form-select" style="font-size:0.82rem">
+                        <option value="">All Notes</option>
+                        <option value="1" {% if filters.pinned == '1' %}selected{% endif %}>Pinned Only</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-gold flex-fill" style="font-size:0.82rem;padding:0.5rem">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                    {% if filters %}<a href="{% url 'notes:notes' %}" class="btn-ghost" style="padding:0.5rem 0.7rem;font-size:0.82rem"><i class="fas fa-times"></i></a>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Tag filters -->
+{% if all_tags %}
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <span style="font-size:0.72rem;color:var(--text-muted);align-self:center">Tags:</span>
+    <a href="{% url 'notes:notes' %}{% if q %}?q={{ q }}{% endif %}" class="tag-filter {% if not active_tag %}active{% endif %}">All</a>
+    {% for t in all_tags %}
+    <a href="?tag={{ t }}{% if q %}&q={{ q }}{% endif %}" class="tag-filter {% if active_tag == t %}active{% endif %}">
+        <i class="fas fa-tag" style="font-size:0.6rem"></i>{{ t }}
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Results count when filtering -->
+{% if filters %}
+<div class="mb-3" style="font-size:0.82rem;color:var(--text-muted)">
+    <i class="fas fa-filter me-1" style="color:var(--gold)"></i>
+    <strong style="color:var(--text)">{{ total_results }}</strong> note{{ total_results|pluralize }}
+    {% if q %} matching "<em style="color:var(--gold)">{{ q }}</em>"{% endif %}
+</div>
+{% endif %}
+
+{% if notes %}
+<div class="row g-3">
+    {% for note in notes %}
+    <div class="col-md-6 col-xl-4">
+        <div class="note-card {% if note.is_pinned %}pinned{% endif %}" id="note-card-{{ note.pk }}"
+             onclick="window.location='{% url 'notes:detail' note.pk %}'">
+
+            <!-- Pin button + tag -->
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    {% if note.tag %}
+                    <span class="tag-chip"
+                          style="background:rgba({{ note.tag_color }},0.12);color:var(--tag-{{ note.tag_color }});border:1px solid rgba({{ note.tag_color }},0.25)">
+                        <i class="fas fa-tag" style="font-size:0.6rem"></i>{{ note.tag }}
+                    </span>
+                    {% endif %}
+                    {% if note.document %}
+                    <span style="font-size:0.68rem;color:var(--text-muted);background:rgba(255,255,255,0.04);padding:2px 7px;border-radius:4px">
+                        <i class="fas fa-file-alt me-1" style="color:var(--gold)"></i>{{ note.document.title|truncatechars:25 }}
+                    </span>
+                    {% endif %}
+                </div>
+                <button class="pin-btn {% if note.is_pinned %}pinned{% endif %}"
+                        onclick="event.stopPropagation(); togglePin({{ note.pk }}, this)"
+                        title="{% if note.is_pinned %}Unpin{% else %}Pin{% endif %}">
+                    <i class="fas fa-thumbtack" style="font-size:0.8rem;{% if note.is_pinned %}color:var(--gold){% endif %}"></i>
+                </button>
+            </div>
+
+            <div class="note-title">{{ note.title }}</div>
+            <div class="note-preview note-content-preview" data-summary="{{ note.content|escapejs|truncatechars:200 }}..."></div>
+
+            <!-- Meta + actions -->
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="note-meta">
+                    <span><i class="fas fa-clock me-1"></i>{{ note.updated_at|date:"d M Y" }}</span>
+                </div>
+                <div class="note-actions" onclick="event.stopPropagation()">
+                    <a href="{% url 'notes:edit' note.pk %}" class="note-action-btn na-edit"><i class="fas fa-pen"></i>Edit</a>
+                    <a href="{% url 'notes:delete' note.pk %}" class="note-action-btn na-del"><i class="fas fa-trash"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% elif filters %}
+<div class="empty-state">
+    <div class="empty-icon"><i class="fas fa-search"></i></div>
+    <h5 style="font-family:'Playfair Display',serif;color:var(--text);margin-bottom:0.5rem">No Notes Found</h5>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.2rem">Try adjusting your filters.</p>
+    <a href="{% url 'notes:notes' %}" class="btn-outline-gold" style="text-decoration:none;padding:0.5rem 1.25rem;border-radius:8px;display:inline-block">Clear Filters</a>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon"><i class="fas fa-sticky-note"></i></div>
+    <h4 style="font-family:'Playfair Display',serif;color:var(--text);margin-bottom:0.5rem">No Notes Yet</h4>
+    <p style="color:var(--text-muted);font-size:0.875rem;max-width:360px;margin:0 auto 1.5rem">
+        Create notes while reviewing cases — attach them to documents, tag them, and pin the important ones.
+    </p>
+    <a href="{% url 'notes:create' %}" class="btn btn-gold"><i class="fas fa-plus me-2"></i>Create First Note</a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".note-content-preview").forEach(function(el) {
+        let raw = el.dataset.summary;
+        if (!raw) return;
+        try {
+            raw = JSON.parse('"' + raw.replace(/"/g, '\\"') + '"');
+        } catch (e) {
+            console.warn("Decode failed:", e);
+        }
+        raw = raw.replace(/\\n/g, '\n').replace(/##/g, "");
+        el.innerHTML = marked.parse(raw);
+    });
+});
+</script>
+<script>
+const CSRF = '{{ csrf_token }}';
+
+// ── Quick note panel ────────────────────────────────────────────────────────
+function toggleQuickNote() {
+    const p = document.getElementById('quickPanel');
+    p.classList.toggle('open');
+    if (p.classList.contains('open')) document.getElementById('qnTitle').focus();
+}
+
+function saveQuickNote() {
+    const title   = document.getElementById('qnTitle').value.trim();
+    const content = document.getElementById('qnContent').value.trim();
+    const tag     = document.getElementById('qnTag').value.trim();
+    if (!title) { document.getElementById('qnTitle').focus(); return; }
+
+    const btn = document.getElementById('qnSaveBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving…'; btn.disabled = true;
+
+    fetch('/notes/quick/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ title, content, tag }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        document.getElementById('qnTitle').value = '';
+        document.getElementById('qnContent').value = '';
+        document.getElementById('qnTag').value = '';
+        const msg = document.getElementById('qnMsg');
+        msg.style.display = 'inline';
+        setTimeout(() => { msg.style.display = 'none'; }, 2500);
+        btn.innerHTML = '<i class="fas fa-save me-1"></i>Save'; btn.disabled = false;
+        // Reload to show new note
+        setTimeout(() => location.reload(), 1000);
+    })
+    .catch(() => { btn.innerHTML = '<i class="fas fa-save me-1"></i>Save'; btn.disabled = false; });
+}
+
+// ── Pin toggle ──────────────────────────────────────────────────────────────
+function togglePin(pk, btn) {
+    fetch(`/notes/${pk}/pin/`, { method: 'POST', headers: { 'X-CSRFToken': CSRF } })
+        .then(r => r.json())
+        .then(data => {
+            const card = document.getElementById(`note-card-${pk}`);
+            btn.classList.toggle('pinned', data.pinned);
+            card.classList.toggle('pinned', data.pinned);
+            btn.querySelector('i').style.color = data.pinned ? 'var(--gold)' : '';
+            btn.title = data.pinned ? 'Unpin' : 'Pin';
+        });
+}
+
+// Auto-submit selects
+document.querySelectorAll('#filterForm select').forEach(s => s.addEventListener('change', () => document.getElementById('filterForm').submit()));
+</script>
+{% endblock %}

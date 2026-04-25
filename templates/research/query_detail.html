@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% block title %}Research Query — CourtVision AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.source-block {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    border-left: 3px solid rgba(201,168,76,0.4); border-radius: 0 7px 7px 0;
+    padding: 0.65rem 0.9rem; margin-bottom: 0.5rem;
+    font-size: 0.78rem; color: var(--text-muted); line-height: 1.6;
+}
+.related-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+    text-decoration: none; display: block; transition: border-color 0.15s;
+}
+.related-card:hover { border-color: rgba(201,168,76,0.4); text-decoration: none; }
+.meta-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; color: var(--text-muted);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">
+    <a href="{% url 'research:history' %}" style="color:var(--text-muted);text-decoration:none" data-i18n="nav_history">
+        <i class="fas fa-history me-1"></i>Research History
+    </a>
+    {% if query.document %}
+    <span class="mx-2" style="opacity:0.4">/</span>
+    <a href="{% url 'research:interface' query.document.pk %}" style="color:var(--text-muted);text-decoration:none">
+        {{ query.document.title|truncatechars:50 }}
+    </a>
+    {% endif %}
+    <span class="mx-2" style="opacity:0.4">/</span>
+    <span style="color:var(--gold)">Query</span>
+</nav>
+
+<div class="row g-4">
+
+    <!-- ── Main answer panel ──────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+        <!-- Query -->
+        <div class="card mb-3">
+            <div class="card-body p-4">
+                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--slate);margin-bottom:0.6rem" data-i18n="label_query">
+                    <i class="fas fa-question-circle me-1" style="color:var(--gold)"></i>Research Query
+                </div>
+                <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:600;color:var(--text);line-height:1.4">
+                    {{ query.query_text }}
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:0.75rem">
+                    <span class="meta-chip"><i class="fas fa-clock"></i>{{ query.created_at|date:"d M Y, H:i" }}</span>
+                    {% if query.document %}
+                    <a href="{% url 'documents:detail' query.document.pk %}" class="meta-chip" style="text-decoration:none;color:var(--text-muted)">
+                        <i class="fas fa-file-alt" style="color:var(--gold)"></i>{{ query.document.title|truncatechars:40 }}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Full LLM Answer -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-robot me-2"></i>AI Research Answer
+                </span>
+            </div>
+            <div class="card-body p-4">
+                {% if query.response_text %}
+                <!-- Translation bar -->
+                {% if user.profile.language != 'en' %}
+                <div id="qTransBar" style="background:rgba(52,152,219,0.07);border:1px solid rgba(52,152,219,0.2);border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:1rem;font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <i class="fas fa-language" style="color:#5dade2"></i>
+                    <span id="qTransStatus">
+                        Response is in English.
+                        <button onclick="translateQuery()" id="qTransBtn"
+                                style="background:rgba(52,152,219,0.15);border:1px solid rgba(52,152,219,0.35);color:#5dade2;border-radius:6px;padding:2px 10px;font-size:0.72rem;cursor:pointer;margin-left:6px">
+                            <i class="fas fa-globe me-1"></i>Translate to {% if user.profile.language == 'hi' %}Hindi{% elif user.profile.language == 'ta' %}Tamil{% endif %}
+                        </button>
+                    </span>
+                    <span id="qTransCache" style="display:none;margin-left:auto;font-size:0.68rem;color:var(--text-muted)"></span>
+                </div>
+                {% endif %}
+                {% comment %} <div class="ai-output" id="fullAnswer"></div>
+                <script>
+                    document.getElementById('fullAnswer').innerHTML = marked.parse(`{{ query.response_text|escapejs }}`);
+                </script> {% endcomment %}
+                <div class="ai-output" id="fullAnswer"
+                    data-summary="{{ query.response_text|escapejs }}">
+                </div>
+                {% else %}
+                <p style="color:var(--text-muted)">No response stored for this query.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Source passages (Collapsible) -->
+        {% if query.sources %}
+        <div class="card mb-3">
+            <div class="card-header" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleSourcePassages(this)">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;flex:1">
+                    <i class="fas fa-database me-2"></i>
+                    <span data-i18n="source_passages">Document Passages Referred</span>
+                </span>
+                <i class="fas fa-chevron-down" style="color:var(--gold);transition:transform 0.3s ease"></i>
+            </div>
+            <div class="card-body p-4" style="display:none" id="sourcesContainer">
+                <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.75rem">
+                    These passages were retrieved from the case document and provided as context to the LLM.
+                </p>
+                {% for src in query.sources %}
+                <div class="source-block">
+                    <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px">Passage {{ forloop.counter }}</div>
+                    {{ src|truncatechars:500 }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 flex-wrap">
+            {% if query.document %}
+            <a href="{% url 'research:interface' query.document.pk %}" class="btn btn-gold">
+                <i class="fas fa-search me-2"></i>Ask Another Question
+            </a>
+            <a href="{% url 'documents:detail' query.document.pk %}" class="btn-outline-gold"
+               style="text-decoration:none;padding:0.5rem 1.1rem;border-radius:8px;display:inline-flex;align-items:center;gap:6px">
+                <i class="fas fa-file-alt"></i><span data-i18n="btn_view_summary">View Document & Summary</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'research:history' %}" class="btn-ghost" data-i18n="nav_history">
+                <i class="fas fa-history me-2"></i>All History
+            </a>
+            <form method="post" action="{% url 'research:delete_query' query.id %}"
+                  onsubmit="return confirm('Delete this research query permanently?')"
+                  style="margin-left:auto">
+                {% csrf_token %}
+                <button type="submit" class="btn-ghost" style="color:rgba(231,76,60,0.7);cursor:pointer;border:none" data-i18n="btn_delete">
+                    <i class="fas fa-trash me-1"></i>Delete
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Sidebar ────────────────────────────────────────────────── -->
+    <div class="col-lg-4">
+
+        <!-- Document info -->
+        {% if query.document %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-folder me-2"></i>Source Document
+                </span>
+            </div>
+            <div class="card-body p-3">
+                <div style="font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:8px;line-height:1.4">
+                    {{ query.document.title }}
+                </div>
+                {% if query.document.case_number %}
+                <div style="font-size:0.75rem;color:var(--gold);font-family:'IBM Plex Mono',monospace;margin-bottom:4px">
+                    <i class="fas fa-hashtag me-1"></i>{{ query.document.case_number }}
+                </div>
+                {% endif %}
+                {% if query.document.court_name %}
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">
+                    <i class="fas fa-landmark me-1" style="color:var(--gold)"></i>{{ query.document.court_name }}
+                </div>
+                {% endif %}
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px">
+                    <i class="fas fa-tag me-1" style="color:var(--gold)"></i>{{ query.document.get_document_type_display }}
+                </div>
+                <a href="{% url 'documents:detail' query.document.pk %}" class="btn-outline-gold"
+                   style="font-size:0.75rem;padding:4px 12px;border-radius:7px;text-decoration:none;display:inline-block" data-i18n="btn_view_summary">
+                    <i class="fas fa-file-alt"></i>View Document & Summary
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Related queries on same document -->
+        {% if related %}
+        <div class="card">
+            <div class="card-header">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-layer-group me-2"></i>Other Queries on This Document
+                </span>
+            </div>
+            <div class="card-body p-3">
+                {% for rq in related %}
+                <a href="{% url 'research:query_detail' rq.id %}" class="related-card">
+                    <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">
+                        {{ rq.query_text }}
+                    </div>
+                    <div style="font-size:0.68rem;color:var(--text-muted);display:flex;justify-content:space-between">
+                        <span>{{ rq.created_at|date:"d M Y, H:i" }}</span>
+                        {% if rq.response_length %}<span style="color:var(--gold)">{{ rq.response_length }} chars</span>{% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+                <a href="{% url 'research:history' %}?doc={{ query.document.pk }}"
+                   style="font-size:0.75rem;color:var(--text-muted);text-decoration:none;display:block;text-align:center;margin-top:0.5rem">
+                    View all queries for this document →
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleSourcePassages(headerEl) {
+    const container = document.getElementById('sourcesContainer');
+    const chevron = headerEl.querySelector('.fa-chevron-down');
+    if (!container || !chevron) return;
+    
+    const isHidden = container.style.display === 'none';
+    container.style.display = isHidden ? 'block' : 'none';
+    chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+</script>
+
+{% if user.profile.language != 'en' %}
+<script>
+const CSRF_QT = '{{ csrf_token }}';
+const Q_TRANS_URL = "{% url 'research:translate_query' query.id %}";
+const Q_USER_LANG = "{{ user.profile.language }}";
+
+function translateQuery() {
+    const btn    = document.getElementById('qTransBtn');
+    const status = document.getElementById('qTransStatus');
+    const cache  = document.getElementById('qTransCache');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Translating…';
+    btn.disabled  = true;
+
+    fetch(Q_TRANS_URL, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_QT, 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.translated) {
+            document.getElementById('fullAnswer').innerHTML = marked.parse(data.translated);
+            status.innerHTML = '<i class="fas fa-check-circle me-1" style="color:#2ecc71"></i>Translated to ' +
+                (Q_USER_LANG === 'hi' ? 'Hindi' : 'Tamil');
+            cache.style.display = 'inline';
+            cache.innerHTML = data.cached
+                ? '<i class="fas fa-database me-1" style="color:var(--gold)"></i>Loaded from cache'
+                : '<i class="fas fa-save me-1" style="color:#2ecc71"></i>Translation saved to database';
+            btn.style.display = 'none';
+        } else {
+            status.textContent = 'Translation unavailable.';
+            btn.innerHTML = '<i class="fas fa-globe me-1"></i>Retry';
+            btn.disabled  = false;
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = '<i class="fas fa-globe me-1"></i>Retry';
+        btn.disabled  = false;
+    });
+}
+</script>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const el = document.getElementById("fullAnswer");
+    let raw = el.dataset.summary;
+
+    if (!raw) return;
+
+    try {
+        raw = JSON.parse('"' + raw.replace(/"/g, '\\"') + '"');
+    } catch (e) {
+        console.warn("Decode failed:", e);
+    }
+    raw = raw.replace(/\\n/g, '\n');
+    el.innerHTML = marked.parse(raw);
+});
+</script>
+{% endblock %}

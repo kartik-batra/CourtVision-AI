@@ -1,0 +1,15 @@
+from django.urls import path
+from . import views
+
+app_name = 'documents'
+
+urlpatterns = [
+    path('', views.document_list, name='list'),
+    path('search/', views.case_search, name='search'),
+    path('search/ajax/', views.search_ajax, name='search_ajax'),
+    path('upload/', views.document_upload, name='upload'),
+    path('<int:pk>/', views.document_detail, name='detail'),
+    path('<int:pk>/delete/', views.document_delete, name='delete'),
+    path('<int:pk>/status/', views.document_status, name='status'),
+    path('<int:pk>/translate/', views.translate_content,  name='translate'),
+]

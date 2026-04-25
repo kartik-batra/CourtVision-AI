@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+{% block title %}Search Cases — CourtVision AI{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Filter sidebar ─────────────────────────────────────────────── */
+.filter-section-label {
+    font-size: 0.67rem; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+}
+.filter-chip {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 4px 11px; font-size: 0.75rem; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; user-select: none;
+}
+.filter-chip:hover { background: rgba(201,168,76,0.1); border-color: rgba(201,168,76,0.4); color: var(--gold); }
+.filter-chip.active { background: rgba(201,168,76,0.15); border-color: var(--gold); color: var(--gold); font-weight: 600; }
+
+/* ── Stats pills ───────────────────────────────────────────────── */
+.stat-pill {
+    background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 10px; padding: 0.7rem 0.9rem; text-align: center;
+}
+.stat-pill .stat-num { font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--gold); line-height: 1; }
+.stat-pill .stat-lbl { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--slate); margin-top: 4px; }
+
+/* ── Search hero ───────────────────────────────────────────────── */
+.search-wrap { position: relative; }
+.search-wrap .search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--gold); font-size: 0.95rem; pointer-events: none; z-index: 2;
+}
+.search-wrap input {
+    background: rgba(255,255,255,0.05); border: 1.5px solid rgba(201,168,76,0.3);
+    color: var(--text); border-radius: 10px;
+    padding: 0.8rem 1rem 0.8rem 2.8rem;
+    font-size: 0.95rem; width: 100%; transition: all 0.2s;
+}
+.search-wrap input:focus {
+    border-color: var(--gold); outline: none;
+    background: rgba(255,255,255,0.08); box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+}
+.search-wrap input::placeholder { color: rgba(136,146,164,0.5); }
+
+/* ── Result card ───────────────────────────────────────────────── */
+.result-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.1rem 1.25rem;
+    transition: all 0.18s; cursor: pointer; display: block;
+    text-decoration: none; margin-bottom: 0.65rem;
+}
+.result-card:hover {
+    border-color: rgba(201,168,76,0.55);
+    background: rgba(29,52,97,0.95);
+    transform: translateX(4px);
+    text-decoration: none;
+}
+.result-card .rc-title {
+    font-family: 'Playfair Display', serif; font-size: 1rem;
+    font-weight: 600; color: var(--text); margin-bottom: 5px; line-height: 1.35;
+}
+.result-card .rc-meta {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    font-size: 0.74rem; color: var(--text-muted); margin-bottom: 7px;
+    align-items: center;
+}
+.result-card .rc-meta .gold { color: var(--gold); }
+.result-card .rc-meta .mono { font-family: 'IBM Plex Mono', monospace; }
+.result-card .rc-snippet {
+    font-size: 0.78rem; color: var(--text-muted); line-height: 1.6;
+    overflow: hidden; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    margin-bottom: 0;
+}
+.result-card .rc-actions {
+    display: flex; gap: 6px; margin-top: 0.65rem;
+}
+
+
+/* ── Action buttons inside cards ───────────────────────────────── */
+.abtn {
+    font-size: 0.72rem; padding: 4px 11px; border-radius: 6px;
+    text-decoration: none; display: inline-flex; align-items: center;
+    gap: 5px; font-weight: 500; transition: all 0.15s; cursor: pointer; border: none;
+}
+.abtn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--navy); }
+.abtn-gold:hover { opacity: 0.9; color: var(--navy); }
+.abtn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+.abtn-outline:hover { background: rgba(201,168,76,0.15); color: var(--gold); }
+.abtn-ghost { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); }
+.abtn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+/* ── Misc ───────────────────────────────────────────────────────── */
+mark { background: rgba(201,168,76,0.28); color: var(--gold-light); border-radius: 3px; padding: 0 2px; }
+#loadingSpinner { display: none; align-items: center; gap: 6px; }
+.empty-state { text-align: center; padding: 3rem 1rem; }
+.empty-icon { width: 68px; height: 68px; background: rgba(201,168,76,0.07); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; color: var(--gold); margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        {% comment %} <a href="{% url 'documents:list' %}" style="color:var(--text-muted);text-decoration:none;font-size:0.83rem" data-i18n="nav_documents">
+            <i class="fas fa-arrow-left me-1"></i>Document Library
+        </a> {% endcomment %}
+        <div class="section-eyebrow mt-2" data-i18n="eyebrow_search">Case Intelligence</div>
+        <h2 class="section-title mb-0" data-i18n="title_search">Search & Browse Cases</h2>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- ── LEFT: Filters ─────────────────────────────────────────── -->
+    <div class="col-lg-3">
+        <div class="card" style="position:sticky;top:78px">
+            <div class="card-header">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-sliders-h me-2"></i>Filters
+                </span>
+            </div>
+            <div class="card-body p-3">
+                <form id="searchForm" method="get" autocomplete="off">
+
+                    <!-- Keyword -->
+                    <div class="mb-3">
+                        <div class="filter-section-label"><i class="fas fa-search"></i><span data-i18n="filter_keyword">Keyword</span></div>
+                        <div class="search-wrap">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" name="q" id="searchInput"
+                                   value="{{ filters.q }}"
+                                   placeholder="Title, case no., court…">
+                        </div>
+                    </div>
+
+                    <!-- Document Type chips -->
+                    <div class="mb-3">
+                        <div class="filter-section-label"><i class="fas fa-tag"></i><span data-i18n="filter_doc_type">Document Type</span></div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="filter-chip {% if not filters.type %}active{% endif %}"
+                                  data-field="type" data-val="" data-i18n="label_all">All</span>
+                            {% for code, label in document_types %}
+                            <span class="filter-chip {% if filters.type == code %}active{% endif %}"
+                                  data-field="type" data-val="{{ code }}">{{ label }}</span>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="type" id="typeInput" value="{{ filters.type }}">
+                    </div>
+
+                    <!-- Status chips -->
+                    <div class="mb-3">
+                        <div class="filter-section-label"><i class="fas fa-circle-dot"></i><span data-i18n="filter_status">Status</span></div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="filter-chip {% if not filters.status %}active{% endif %}"
+                                  data-field="status" data-val="" data-i18n="label_all">All</span>
+                            {% for code, label in status_choices %}
+                            <span class="filter-chip {% if filters.status == code %}active{% endif %}"
+                                  data-field="status" data-val="{{ code }}">{{ label }}</span>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="status" id="statusInput" value="{{ filters.status }}">
+                    </div>
+
+                    <!-- Court -->
+                    {% if court_names %}
+                    <div class="mb-3">
+                        <div class="filter-section-label"><i class="fas fa-landmark"></i><span data-i18n="filter_court">Court</span></div>
+                        <select name="court" id="courtInput" class="form-control form-select" style="font-size:0.8rem">
+                            <option value="" data-i18n="filter_all_courts">All Courts</option>
+                            {% for court in court_names %}
+                            <option value="{{ court }}" {% if filters.court == court %}selected{% endif %}>{{ court }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <!-- Date range -->
+                    <div class="mb-3">
+                        <div class="filter-section-label"><i class="fas fa-calendar"></i><span data-i18n="filter_filing_date">Filing Date</span></div>
+                        <input type="date" name="date_from" value="{{ filters.date_from }}"
+                               class="form-control mb-2" style="font-size:0.8rem"
+                               placeholder="From">
+                        <input type="date" name="date_to" value="{{ filters.date_to }}"
+                               class="form-control" style="font-size:0.8rem"
+                               placeholder="To">
+                    </div>
+
+                    <!-- Sort -->
+                    <div class="mb-3">
+                        <div class="filter-section-label"><i class="fas fa-sort"></i><span data-i18n="filter_sort">Sort By</span></div>
+                        <select name="sort" class="form-control form-select" style="font-size:0.8rem">
+                            <option value="-created_at" {% if not filters.sort or filters.sort == '-created_at' %}selected{% endif %} data-i18n="newest_uploaded">Newest Uploaded</option>
+                            <option value="created_at"  {% if filters.sort == 'created_at' %}selected{% endif %} data-i18n="oldest_uploaded">Oldest Uploaded</option>
+                            <option value="title"       {% if filters.sort == 'title' %}selected{% endif %}>Title A–Z</option>
+                            <option value="-title"      {% if filters.sort == '-title' %}selected{% endif %}>Title Z–A</option>
+                            <option value="-filing_date" {% if filters.sort == '-filing_date' %}selected{% endif %}>Filing Date ↓</option>
+                            <option value="filing_date"  {% if filters.sort == 'filing_date' %}selected{% endif %}>Filing Date ↑</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-gold w-100 mb-2" data-i18n="btn_search">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                    {% if filters %}
+                    <a href="{% url 'documents:search' %}"
+                       class="btn-ghost d-block text-center w-100"
+                       style="padding:0.45rem;font-size:0.82rem;border-radius:8px"
+                       data-i18n="btn_clear_all">
+                        <i class="fas fa-times me-1"></i>Clear All Filters
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── RIGHT: Results ────────────────────────────────────────── -->
+    <div class="col-lg-9">
+
+        <!-- Results header bar -->
+        <div class="d-flex justify-content-between align-items-center mb-3" style="min-height:28px">
+            <div id="resultCount" style="font-size:0.85rem;color:var(--text-muted)">
+                {% if filters %}
+                    <strong style="color:var(--text)">{{ total_results }}</strong>
+                    result{{ total_results|pluralize }}
+                    {% if filters.q %} for "<em style="color:var(--gold)">{{ filters.q }}</em>"{% endif %}
+                {% else %}
+                    <strong style="color:var(--text)">{{ total_results }}</strong>
+                    case{{ total_results|pluralize }} in your library
+                {% endif %}
+            </div>
+            <div id="loadingSpinner" style="font-size:0.8rem;color:var(--text-muted)">
+                <i class="fas fa-spinner fa-spin" style="color:var(--gold)"></i> Searching…
+            </div>
+        </div>
+
+        <!-- Results list -->
+        <div id="resultsContainer">
+            {% if documents %}
+                {% for doc in documents %}
+                <a href="{% url 'documents:detail' doc.pk %}" style="text-decoration:none">
+                <div class="result-card">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+
+                        <!-- Left content -->
+                        <div style="flex:1;min-width:0">
+                            <!-- Icon + Title -->
+                            <div class="d-flex align-items-start gap-2 mb-1">
+                                <div style="width:30px;height:30px;background:rgba(201,168,76,0.1);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:0.78rem;flex-shrink:0;margin-top:2px">
+                                    <i class="fas fa-{% if doc.document_type == 'judgment' %}gavel{% elif doc.document_type == 'contract' %}file-contract{% elif doc.document_type == 'petition' %}scroll{% elif doc.document_type == 'statute' %}landmark{% elif doc.document_type == 'order' %}stamp{% else %}file-alt{% endif %}"></i>
+                                </div>
+                                <div class="rc-title">{{ doc.title }}</div>
+                            </div>
+
+                            <!-- Meta row -->
+                            <div class="rc-meta">
+                                <span><i class="fas fa-tag me-1 gold"></i>{{ doc.get_document_type_display }}</span>
+                                {% if doc.case_number %}
+                                <span class="gold mono"><i class="fas fa-hashtag me-1"></i>{{ doc.case_number }}</span>
+                                {% endif %}
+                                {% if doc.court_name %}
+                                <span><i class="fas fa-landmark me-1" style="color:var(--gold)"></i>{{ doc.court_name }}</span>
+                                {% endif %}
+                                {% if doc.filing_date %}
+                                <span><i class="fas fa-calendar me-1"></i>{{ doc.filing_date|date:"d M Y" }}</span>
+                                {% endif %}
+                                <span><i class="fas fa-file me-1"></i>{{ doc.get_file_size_display }}</span>
+                                <span><i class="fas fa-clock me-1"></i>{{ doc.created_at|date:"d M Y" }}</span>
+                            </div>
+
+                            <!-- Action buttons (visible on hover) -->
+                            <div class="rc-actions">
+                                <span class="abtn abtn-gold" data-i18n="btn_view_summary"><i class="fas fa-eye"></i>View Summary</span>
+                                {% if doc.status == 'completed' %}
+                                <a href="{% url 'research:interface' doc.pk %}" class="abtn abtn-outline" data-i18n="btn_research">
+                                    <i class="fas fa-search"></i>Research
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </a>
+                {% endfor %}
+
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-search"></i></div>
+                <h5 style="font-family:'Playfair Display',serif;color:var(--text);margin-bottom:0.5rem" data-i18n="no_cases_title">
+                    {% if stats.total == 0 %}No Documents Yet{% else %}No Matching Cases{% endif %}
+                </h5>
+                <p style="color:var(--text-muted);font-size:0.875rem;max-width:340px;margin:0 auto 1.2rem" data-i18n="no_cases_msg">
+                    {% if stats.total == 0 %}{% if user.is_superuser %}Upload your first document to start researching. {% else %}No documents have been uploaded yet. Please check back later.{% endif %}
+                    {% else %}Try adjusting your search filters.{% endif %}
+                </p>
+                {% if stats.total == 0 %}{% if user.is_superuser %}
+                <a href="{% url 'documents:upload' %}" class="btn btn-gold">
+                    <i class="fas fa-upload me-2"></i>Upload First Document
+                </a>
+                {% endif %}{% else %}
+                <a href="{% url 'documents:search' %}"
+                   class="btn-outline-gold"
+                   style="text-decoration:none;padding:0.5rem 1.25rem;border-radius:8px;display:inline-block"
+                   data-i18n="btn_clear_all">
+                    Clear All Filters
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if total_results > 30 %}
+        <div class="text-center mt-3" style="font-size:0.78rem;color:var(--text-muted)">
+            <i class="fas fa-info-circle me-1" style="color:var(--gold)"></i>
+            Showing first 30 results — refine your search to narrow results.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const AJAX_URL = "{% url 'documents:search_ajax' %}";
+let debounceTimer;
+
+// ── Filter chips ────────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', function () {
+        const field = this.dataset.field;
+        // Deactivate siblings in same group
+        this.closest('.d-flex').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById(field + 'Input').value = this.dataset.val;
+        triggerSearch();
+    });
+});
+
+// ── Auto-submit dropdowns ───────────────────────────────────────────────────
+document.getElementById('courtInput')?.addEventListener('change', triggerSearch);
+document.querySelector('[name="sort"]').addEventListener('change', triggerSearch);
+document.querySelector('[name="date_from"]').addEventListener('change', triggerSearch);
+document.querySelector('[name="date_to"]').addEventListener('change', triggerSearch);
+
+// ── Live keyword search ─────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(triggerSearch, 380);
+});
+
+// ── Enter key ──────────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounceTimer); triggerSearch(); }
+});
+
+function triggerSearch() {
+    const form   = document.getElementById('searchForm');
+    const params = new URLSearchParams(new FormData(form));
+    // Strip empty params for clean URLs
+    for (const [k, v] of [...params.entries()]) { if (!v) params.delete(k); }
+
+    showSpinner(true);
+    fetch(AJAX_URL + '?' + params.toString())
+        .then(r => r.json())
+        .then(data => { showSpinner(false); renderResults(data, params.get('q') || ''); })
+        .catch(() => showSpinner(false));
+}
+
+function showSpinner(on) {
+    document.getElementById('loadingSpinner').style.display = on ? 'flex' : 'none';
+}
+
+// ── Render AJAX results ─────────────────────────────────────────────────────
+const TYPE_ICONS = {
+    judgment: 'gavel', contract: 'file-contract', petition: 'scroll',
+    statute: 'landmark', order: 'stamp', brief: 'file-alt',
+    evidence: 'search', other: 'file-alt'
+};
+
+function renderResults(data, query) {
+    const container = document.getElementById('resultsContainer');
+    const countEl   = document.getElementById('resultCount');
+    const n = data.count;
+
+    // Update count
+    const qPart = query ? ` for "<em style="color:var(--gold)">${esc(query)}</em>"` : '';
+    countEl.innerHTML = `<strong style="color:var(--text)">${n}</strong> result${n !== 1 ? 's' : ''}${qPart}`;
+
+    if (n === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-search"></i></div>
+                <h5 style="font-family:'Playfair Display',serif;color:var(--text);margin-bottom:0.5rem" data-i18n="no_cases_title">No Cases Found</h5>
+                <p style="color:var(--text-muted);font-size:0.875rem">Try adjusting your filters.</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = data.results.map(doc => {
+        const icon    = TYPE_ICONS[doc.document_type_code] || 'file-alt';
+
+        const resBtn  = doc.research_url
+            ? `<a href="${doc.research_url}" class="abtn abtn-outline" onclick="event.stopPropagation()" data-i18n="btn_research"><i class="fas fa-search"></i> Research</a>` : '';
+        const aiTag   = doc.has_summary
+            ? `<div style="font-size:0.67rem;color:#2ecc71;margin-top:5px;white-space:nowrap"><i class="fas fa-robot me-1"></i><span data-i18n="ai_ready">AI Summary Ready</span></div>` : '';
+        const caseNo  = doc.case_number
+            ? `<span class="gold mono"><i class="fas fa-hashtag me-1"></i>${esc(doc.case_number)}</span>` : '';
+        const courtEl = doc.court_name
+            ? `<span><i class="fas fa-landmark me-1" style="color:var(--gold)"></i>${esc(doc.court_name)}</span>` : '';
+        const dateEl  = doc.filing_date
+            ? `<span><i class="fas fa-calendar me-1"></i>${esc(doc.filing_date)}</span>` : '';
+
+        return `
+        <a href="${doc.detail_url}" style="text-decoration:none">
+        <div class="result-card">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+                <div style="flex:1;min-width:0">
+                    <div class="d-flex align-items-start gap-2 mb-1">
+                        <div style="width:30px;height:30px;background:rgba(201,168,76,0.1);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:0.78rem;flex-shrink:0;margin-top:2px">
+                            <i class="fas fa-${icon}"></i>
+                        </div>
+                        <div class="rc-title">${highlight(esc(doc.title), query)}</div>
+                    </div>
+                    <div class="rc-meta">
+                        <span><i class="fas fa-tag me-1 gold"></i>${esc(doc.document_type)}</span>
+                        ${caseNo}${courtEl}${dateEl}
+                        <span><i class="fas fa-file me-1"></i>${esc(doc.file_size)}</span>
+                        <span><i class="fas fa-clock me-1"></i>${esc(doc.created_at)}</span>
+                    </div>
+                    <div class="rc-actions">
+                        <span class="abtn abtn-gold" data-i18n="btn_view_summary"><i class="fas fa-eye"></i> View Summary</span>
+                        ${resBtn}
+                    </div>
+                </div>
+                <div style="flex-shrink:0;text-align:right">
+                    <span class="badge-status badge-${doc.status}">${esc(doc.status_display)}</span>
+                    ${aiTag}
+                </div>
+            </div>
+        </div>
+        </a>`;
+    }).join('');
+}
+
+function highlight(text, q) {
+    if (!q) return text;
+    return text.replace(new RegExp(`(${escRe(q)})`, 'gi'), '<mark>$1</mark>');
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s||''); return d.innerHTML; }
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+</script>
+{% endblock %}

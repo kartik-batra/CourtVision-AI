@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CourtVision AI{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0a1628; --navy-mid: #112240; --navy-light: #1d3461;
+            --gold: #c9a84c; --gold-light: #e8c96d; --cream: #f5f0e8;
+            --slate: #8892a4; --text: #e8eaf0; --text-muted: #8892a4;
+            --border: rgba(201,168,76,0.2); --card-bg: rgba(17,34,64,0.8);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background-color: var(--navy); color: var(--text); min-height: 100vh;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(29,52,97,0.6) 0%, transparent 50%);
+        }
+        .navbar { background: rgba(10,22,40,0.97) !important; backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.75rem 0; }
+        .navbar-brand { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold) !important; display: flex; align-items: center; gap: 10px; }
+        .brand-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--gold), var(--gold-light)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: var(--navy); }
+        .brand-sub { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.58rem; font-weight: 400; color: var(--slate); display: block; letter-spacing: 2px; text-transform: uppercase; line-height: 1; }
+        .nav-link { color: var(--text-muted) !important; font-size: 0.875rem; font-weight: 500; padding: 0.4rem 0.9rem !important; border-radius: 6px; transition: all 0.2s; }
+        .nav-link:hover, .nav-link.active { color: var(--gold) !important; background: rgba(201,168,76,0.08); }
+        .navbar-user-badge { background: var(--navy-light); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px 4px 6px; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+        .user-avatar { width: 28px; height: 28px; background: linear-gradient(135deg, var(--gold), var(--gold-light)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: var(--navy); }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; }
+        .card-header { background: rgba(201,168,76,0.05); border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; border-radius: 12px 12px 0 0 !important; }
+        .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--navy); font-weight: 600; border: none; padding: 0.5rem 1.25rem; border-radius: 8px; transition: all 0.2s; font-size: 0.875rem; }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(201,168,76,0.4); color: var(--navy); }
+        .btn-outline-gold { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 500; transition: all 0.2s; font-size: 0.875rem; }
+        .btn-outline-gold:hover { background: var(--gold); color: var(--navy); }
+        .btn-ghost { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.45rem 1rem; font-size: 0.85rem; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+        .badge-status { padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+        .badge-completed { background: rgba(46,204,113,0.15); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+        .badge-processing { background: rgba(243,156,18,0.15); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+        .badge-pending { background: rgba(136,146,164,0.15); color: var(--slate); border: 1px solid rgba(136,146,164,0.2); }
+        .badge-failed { background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+        .form-control, .form-select { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text); border-radius: 8px; padding: 0.6rem 0.875rem; font-size: 0.875rem; transition: all 0.2s; }
+        .form-control:focus, .form-select:focus { background: rgba(255,255,255,0.07); border-color: var(--gold); color: var(--text); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+        .form-control::placeholder { color: rgba(136,146,164,0.5); }
+        .form-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--slate); margin-bottom: 5px; }
+        .alert { border-radius: 10px; border: none; font-size: 0.875rem; padding: 0.75rem 1rem; }
+        .alert-success { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
+        .alert-danger, .alert-error { background: rgba(231,76,60,0.12); color: #e74c3c; border: 1px solid rgba(231,76,60,0.25); }
+        .alert-info { background: rgba(52,152,219,0.12); color: #5dade2; border: 1px solid rgba(52,152,219,0.25); }
+        .alert-warning { background: rgba(243,156,18,0.12); color: #f39c12; border: 1px solid rgba(243,156,18,0.25); }
+        .gold-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); border: none; margin: 1.5rem 0; opacity: 0.3; }
+        .section-eyebrow { font-size: 1.0rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+        .section-title { font-family: 'Playfair Display', serif; font-size: 1.9rem; font-weight: 700; color: var(--text); }
+        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--navy); } ::-webkit-scrollbar-thumb { background: var(--navy-light); border-radius: 3px; } ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+        .main-content { padding: 1.75rem 0; min-height: calc(100vh - 70px); }
+        .ai-output h1, .ai-output h2, .ai-output h3 { font-family: 'Playfair Display', serif; color: var(--gold-light); margin-top: 1.2rem; margin-bottom: 0.5rem; }
+        .ai-output h1 { font-size: 1.25rem; } .ai-output h2 { font-size: 1.1rem; } .ai-output h3 { font-size: 1rem; }
+        .ai-output strong { color: var(--cream); } .ai-output ul, .ai-output ol { padding-left: 1.5rem; } .ai-output li { margin-bottom: 4px; color: var(--text-muted); }
+        .ai-output p { color: var(--text-muted); line-height: 1.7; margin-bottom: 0.75rem; }
+        .ai-output code { background: rgba(201,168,76,0.1); color: var(--gold-light); padding: 2px 6px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 0.85em; }
+        option { background: var(--navy-mid); color: var(--text); }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+{% if user.is_authenticated %}
+<nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="{% url 'documents:list' %}">
+            <div class="brand-icon"><i class="fas fa-balance-scale"></i></div>
+            <div>CourtVision AI<span class="brand-sub">Commercial Courts Intelligence</span></div>
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <i class="fas fa-bars" style="color:var(--gold)"></i>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto ms-3">
+                {% with current=request.resolver_match.url_name %}
+                <li class="nav-item">
+                    <a class="nav-link {% if current == 'list'%}active{% elif current == 'search' %}active{% endif %}"
+                    href="{% url 'documents:list' %}" data-i18n="nav_documents">
+                        <i class="fas fa-folder-open me-1"></i>Documents
+                    </a>
+                </li>
+                {% comment %} <li class="nav-item">
+                    <a class="nav-link {% if current == 'search' %}active{% endif %}"
+                    href="{% url 'documents:search' %}" data-i18n="nav_search">
+                        <i class="fas fa-search me-1"></i>Search Cases
+                    </a>
+                </li> {% endcomment %}
+                <li class="nav-item">
+                    <a class="nav-link {% if current == 'history' %}active{% endif %}"
+                    href="{% url 'research:history' %}" data-i18n="nav_history">
+                        <i class="fas fa-history me-1"></i>Research History
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if current == 'notes' %}active{% endif %}"
+                    href="{% url 'notes:notes' %}">
+                        Notes
+                    </a>
+                </li>
+
+                {% if user.is_superuser %}
+                <li class="nav-item">
+                    <a class="nav-link {% if current == 'upload' %}active{% endif %}"
+                    href="{% url 'documents:upload' %}" data-i18n="nav_upload">
+                        <i class="fas fa-cloud-upload-alt me-1"></i>Upload Document
+                    </a>
+                </li>
+                {% endif %}
+                {% endwith %}
+
+            </ul>
+            <div class="d-flex align-items-center gap-3">
+                <div class="navbar-user-badge">
+                    <div class="user-avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+                    <div>
+                        <div style="font-weight:600">{{ user.get_full_name|default:user.username }}</div>
+                        {% if user.profile %}<div style="font-size:0.67rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px">{{ user.profile.get_role_display }}</div>{% endif %}
+                    </div>
+                </div>
+                <a href="{% url 'authentication:logout' %}" class="btn-ghost"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+                <div class="dropdown"> <!-- Language Switcher --> 
+                    <button class="btn-ghost dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:none;cursor:pointer">
+                        <i class="fas fa-globe" style="color:var(--gold);font-size:0.85rem"></i>
+                        <span style="font-size:0.8rem">
+                            {% if user.profile.language == 'hi' %}हिन्दी
+                            {% elif user.profile.language == 'ta' %}தமிழ்
+                            {% else %}EN{% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end"
+                        style="background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;min-width:130px;padding:6px">
+                        <form method="post" action="{% url 'authentication:set_language' %}" id="langForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <input type="hidden" name="language" id="langInput" value="en">
+                        </form>
+                        <li>
+                            <button onclick="switchLang('en')" type="button"
+                                    class="dropdown-item {% if user.profile.language == 'en' or not user.profile.language %}active{% endif %}"
+                                    style="background:none;border:none;width:100%;text-align:left;padding:6px 10px;border-radius:7px;font-size:0.82rem;color:{% if user.profile.language == 'en' or not user.profile.language %}var(--gold){% else %}var(--text-muted){% endif %};cursor:pointer;display:flex;align-items:center;gap:8px">
+                                English
+                                {% if user.profile.language == 'en' or not user.profile.language %}<i class="fas fa-check ms-auto" style="color:var(--gold);font-size:0.7rem"></i>{% endif %}
+                            </button>
+                        </li>
+                        <li>
+                            <button onclick="switchLang('hi')" type="button"
+                                    class="dropdown-item {% if user.profile.language == 'hi' %}active{% endif %}"
+                                    style="background:none;border:none;width:100%;text-align:left;padding:6px 10px;border-radius:7px;font-size:0.82rem;color:{% if user.profile.language == 'hi' %}var(--gold){% else %}var(--text-muted){% endif %};cursor:pointer;display:flex;align-items:center;gap:8px">
+                                हिन्दी
+                                {% if user.profile.language == 'hi' %}<i class="fas fa-check ms-auto" style="color:var(--gold);font-size:0.7rem"></i>{% endif %}
+                            </button>
+                        </li>
+                        <li>
+                            <button onclick="switchLang('ta')" type="button"
+                                    class="dropdown-item {% if user.profile.language == 'ta' %}active{% endif %}"
+                                    style="background:none;border:none;width:100%;text-align:left;padding:6px 10px;border-radius:7px;font-size:0.82rem;color:{% if user.profile.language == 'ta' %}var(--gold){% else %}var(--text-muted){% endif %};cursor:pointer;display:flex;align-items:center;gap:8px">
+                                தமிழ்
+                                {% if user.profile.language == 'ta' %}<i class="fas fa-check ms-auto" style="color:var(--gold);font-size:0.7rem"></i>{% endif %}
+                            </button>
+                        </li>
+                    </ul>
+                </div>    
+            </div>
+        </div>
+    </div>
+</nav>
+{% endif %}
+<div class="main-content">
+    <div class="container-fluid px-4">
+        {% if messages %}
+        <div class="mt-1 mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif 'error' in message.tags or 'danger' in message.tags %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+{% if user.is_authenticated %}
+<footer style="background:rgba(10,22,40,0.97);border-top:1px solid rgba(201,168,76,0.15);padding:2.5rem 0 1.5rem;margin-top:3rem">
+    <div class="container-fluid px-4">
+        <div class="row g-4 mb-4">
+
+            <!-- Brand -->
+            <div class="col-lg-4 col-md-6">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.9rem">
+                    <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;color:var(--navy);flex-shrink:0">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div>
+                        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--gold);line-height:1.1">CourtVision AI</div>
+                        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--slate)">Commercial Courts Intelligence</div>
+                    </div>
+                </div>
+                <p style="font-size:0.78rem;color:var(--slate);line-height:1.7;max-width:300px;margin-bottom:1rem">
+                    AI-powered legal research platform for Indian commercial courts. View summaries, extract insights, and find relevant case law in seconds. For judges, lawyers, and researchers seeking quick access to commercial court judgments and analysis.
+                </p>
+            </div>
+
+            <!-- Services -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:0.9rem">Services</div>
+                <ul style="list-style:none;padding:0;margin:0">
+                    <li style="margin-bottom:0.5rem"><a href="{% url 'documents:list' %}" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-folder-open me-2" style="width:14px"></i>Documents</a></li>
+                    <li style="margin-bottom:0.5rem"><a href="{% url 'documents:search' %}" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-search me-2" style="width:14px"></i>Search Cases</a></li>
+                    <li style="margin-bottom:0.5rem"><a href="{% url 'research:history' %}" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-history me-2" style="width:14px"></i>Research History</a></li>
+                    <li style="margin-bottom:0.5rem"><a href="{% url 'notes:notes' %}" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-sticky-note me-2" style="width:14px"></i>Notes</a></li>
+                    {% if user.is_superuser %}
+                    <li style="margin-bottom:0.5rem"><a href="{% url 'documents:upload' %}" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-upload me-2" style="width:14px"></i>Upload Document</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="col-lg-2 col-md-3 col-6">
+                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:0.9rem">Quick Links</div>
+                <ul style="list-style:none;padding:0;margin:0">
+                    <li style="margin-bottom:0.5rem"><a href="/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-home me-2" style="width:14px"></i>Home</a></li>
+                    <li style="margin-bottom:0.5rem"><a href="/about/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-info-circle me-2" style="width:14px"></i>About</a></li>
+                    <li style="margin-bottom:0.5rem"><a href="/contact/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-envelope me-2" style="width:14px"></i>Contact Us</a></li>
+                    {% if user.is_superuser %}
+                        <li style="margin-bottom:0.5rem"><a href="/admin/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-cog me-2" style="width:14px"></i>Admin Panel</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+
+
+
+            <!-- Session info -->
+            <div class="col-lg-3 col-md-6" style="margin-left:auto">
+                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:0.9rem">Session</div>
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:0.9rem">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+                        <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:var(--navy);flex-shrink:0">
+                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        </div>
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--text)">{{ user.get_full_name|default:user.username }}</div>
+                            {% if user.profile %}
+                            <div style="font-size:0.67rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px">{{ user.profile.get_role_display }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if user.profile and user.profile.court_affiliation %}
+                    <div style="font-size:0.73rem;color:var(--slate);margin-bottom:0.5rem">
+                        <i class="fas fa-landmark me-1" style="color:var(--gold)"></i>{{ user.profile.court_affiliation|truncatechars:40 }}
+                    </div>
+                    {% endif %}
+                    <div style="margin-top:0.6rem">
+                        <span style="font-size:0.65rem;padding:2px 8px;border-radius:10px;{% if user.is_superuser %}background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.3){% else %}background:rgba(52,152,219,0.12);color:#5dade2;border:1px solid rgba(52,152,219,0.25){% endif %}">
+                            {% if user.is_superuser %}<i class="fas fa-shield-alt me-1"></i>Administrator{% else %}<i class="fas fa-user me-1"></i>Researcher{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom bar -->
+        <div style="border-top:1px solid rgba(201,168,76,0.1);padding-top:1.1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem">
+            <div style="font-size:0.72rem;color:var(--slate)">
+                &copy; {% now "Y" %} CourtVision AI
+            </div>
+            <div style="display:flex;gap:1.25rem;align-items:center">
+                <span style="font-size:0.68rem;color:var(--slate)">
+                    <i class="fas fa-circle me-1" style="color:#2ecc71;font-size:0.5rem;vertical-align:middle"></i><span data-i18n="footer_operational">System Operational</span>
+                </span>
+                <a href="{% url 'authentication:logout' %}" style="font-size:0.72rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='var(--slate)'">
+                    <i class="fas fa-sign-out-alt me-1"></i><span data-i18n="footer_sign_out">Sign Out</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endif %}
+
+<script>
+    // Set language from server — used by translations.js before DOMContentLoaded
+    window.COURT_LANG = "{% if user.is_authenticated and user.profile %}{{ user.profile.language|default:'en' }}{% else %}en{% endif %}";
+</script>
+<script src="/static/js/translations.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+function switchLang(lang) {
+    document.getElementById('langInput').value = lang;
+    // Apply instantly without waiting for server
+    if (window.applyTranslations) window.applyTranslations(lang);
+    document.getElementById('langForm').submit();
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

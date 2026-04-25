@@ -1,0 +1,452 @@
+{% extends 'base.html' %}
+{% block title %}{{ document.title }} — CourtVision AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.tab-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+.tab-btn {
+    background: none; border: none; color: var(--text-muted); padding: 0.6rem 1.1rem;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.2s; letter-spacing: 0.3px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.finding-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(201,168,76,0.12);
+    border-left: 3px solid var(--gold); border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 0.6rem;
+}
+.meta-row { display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.82rem; }
+.meta-row:last-child { border-bottom: none; }
+.meta-label { color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.meta-value { color: var(--text); text-align: right; max-width: 65%; }
+.ai-output h1, .ai-output h2 {
+    
+    border-left: 3px solid var(--gold);
+    padding-left: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb + header -->
+<div class="mb-4">
+    <nav style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem">
+        <a href="{% url 'documents:list' %}" style="color:var(--text-muted);text-decoration:none">
+            <i class="fas fa-folder-open me-1"></i><span data-i18n="nav_documents">Documents</span>
+        </a>
+        <span class="mx-2" style="opacity:0.4">/</span>
+        <a href="{% url 'documents:search' %}" style="color:var(--text-muted);text-decoration:none">
+            <i class="fas fa-search me-1"></i><span data-i18n="nav_search">Search</span>
+        </a>
+        <span class="mx-2" style="opacity:0.4">/</span>
+        <span style="color:var(--gold)">{{ document.title|truncatechars:50 }}</span>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge-status badge-{{ document.status }}">
+                    {% if document.status == 'processing' or document.status == 'pending' %}<i class="fas fa-spinner fa-spin me-1"></i>{% elif document.status == 'completed' %}<i class="fas fa-check me-1"></i>{% endif %}
+                    {{ document.get_status_display }}
+                </span>
+                <span style="background:rgba(255,255,255,0.05);padding:3px 9px;border-radius:4px;font-size:0.75rem;color:var(--text-muted)">{{ document.get_document_type_display }}</span>
+                {% if document.summary %}
+                    <span style="font-size:0.72rem;color:#2ecc71">
+                        <i class="fas fa-robot me-1"></i><span data-i18n="label_ai_complete">AI Analysis Complete</span>
+                    </span>
+                {% endif %}
+            </div>
+            <h2 style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:6px;max-width:700px;line-height:1.3">{{ document.title }}</h2>
+            <div class="d-flex flex-wrap gap-3" style="font-size:0.8rem;color:var(--text-muted)">
+                {% if document.case_number %}<span style="color:var(--gold);font-family:'IBM Plex Mono',monospace"><i class="fas fa-hashtag me-1"></i>{{ document.case_number }}</span>{% endif %}
+                {% if document.court_name %}<span><i class="fas fa-landmark me-1" style="color:var(--gold)"></i>{{ document.court_name }}</span>{% endif %}
+                {% if document.filing_date %}<span><i class="fas fa-calendar me-1"></i>Filed {{ document.filing_date|date:"d M Y" }}</span>{% endif %}
+                <span><i class="fas fa-clock me-1"></i>Uploaded {{ document.created_at|date:"d M Y" }}</span>
+                <span><i class="fas fa-file me-1"></i>{{ document.get_file_size_display }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if document.status == 'completed' %}
+            <a href="{% url 'research:interface' document.pk %}" class="btn btn-gold">
+                <i class="fas fa-search me-2"></i><span data-i18n="btn_research_query">Research Query</span>
+            </a>
+            {% endif %}
+            <a href="{{ document.file.url }}" class="btn-outline-gold" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:0.5rem 1.1rem;border-radius:8px">
+                <i class="fas fa-download"></i><span data-i18n="btn_download">Download</span>
+            </a>
+            <a href="{% url 'notes:create' %}?doc={{ document.pk }}" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px">
+                <i class="fas fa-sticky-note" style="color:var(--gold)"></i>Take Notes
+            </a>
+            {% if user.is_superuser %}
+            <a href="{% url 'documents:delete' document.pk %}" class="btn-ghost" style="color:rgba(231,76,60,0.7)">
+                <i class="fas fa-trash me-1"></i><span data-i18n="btn_delete">Delete</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Processing banner -->
+{% if document.status == 'processing' or document.status == 'pending' %}
+<div class="alert alert-warning mb-4" id="processingBanner">
+    <i class="fas fa-robot me-2"></i>
+    <strong><span data-i18n="label_processing_ai">AI Analysis in Progress</span></strong> — LangGraph pipeline is extracting text, building FAISS embeddings, and generating your summary. Auto-refreshing every 6 seconds.
+    <div class="mt-2" style="height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
+        <div style="height:100%;background:var(--gold);animation:prog 2s ease-in-out infinite"></div>
+    </div>
+</div>
+<style>@keyframes prog{0%{width:0%;margin-left:0}50%{width:60%}100%{width:0%;margin-left:100%}}</style>
+{% endif %}
+
+{% if document.status == 'failed' %}
+<div class="alert alert-danger mb-4"><i class="fas fa-exclamation-circle me-2"></i><strong>Processing Failed.</strong> {% if user.is_superuser %} Please delete and re-upload the document.{% else %} Please contact an administrator.{% endif %}</div>
+{% endif %}
+
+<!-- Tab Navigation -->
+<div class="tab-nav">
+    <button class="tab-btn active" data-tab="summary"><i class="fas fa-robot me-1"></i><span data-i18n="tab_summary">AI Summary</span></button>
+    <button class="tab-btn" data-tab="findings"><i class="fas fa-lightbulb me-1"></i><span data-i18n="tab_findings">Key Findings</span></button>
+    <button class="tab-btn" data-tab="metadata"><i class="fas fa-info-circle me-1"></i><span data-i18n="tab_metadata">Case Details</span></button>
+    <button class="tab-btn" data-tab="viewer"><i class="fas fa-file-pdf me-1"></i><span data-i18n="tab_viewer">Original Document</span></button>
+</div>
+
+<!-- TAB: AI Summary -->
+<div class="tab-pane active" id="tab-summary">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                <i class="fas fa-brain me-2"></i>AI-Generated Legal Summary
+            </span>
+        </div>
+        <div class="card-body p-4">
+            {% if document.summary %}
+
+            <!-- Translation bar (shown only for hi/ta users) -->
+            {% if user.profile.language != 'en' %}
+            <div id="translationBar" style="background:rgba(52,152,219,0.07);border:1px solid rgba(52,152,219,0.2);border-radius:8px;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <i class="fas fa-language" style="color:#5dade2;font-size:1rem"></i>
+                <span id="transStatus">
+                    Content is in English.
+                    <button type="button" id="transBtn"
+                            style="background:rgba(52,152,219,0.15);border:1px solid rgba(52,152,219,0.35);color:#5dade2;border-radius:6px;padding:2px 10px;font-size:0.72rem;cursor:pointer;margin-left:6px">
+                        <i class="fas fa-globe me-1"></i>Translate to {% if user.profile.language == 'hi' %}Hindi{% elif user.profile.language == 'ta' %}Tamil{% endif %}
+                    </button>
+                </span>
+                <span id="transCache" style="display:none;margin-left:auto;font-size:0.68rem;color:var(--text-muted)"></span>
+            </div>
+            {% endif %}
+
+            <div class="ai-output" id="summaryContent"
+                data-summary="{{ document.summary|escapejs }}">
+            </div>
+
+            {% elif document.status == 'processing' or document.status == 'pending' %}
+            <div class="text-center py-5" style="color:var(--text-muted)">
+                <i class="fas fa-spinner fa-spin fa-2x mb-3" style="color:var(--gold)"></i>
+                <p style="margin-bottom:0.4rem">AI is analysing your document…</p>
+                <p style="font-size:0.8rem;opacity:0.7">Extracting text → chunking → map summarization → reduce → findings</p>
+            </div>
+            {% else %}
+            <div class="text-center py-5" style="color:var(--text-muted)">
+                <i class="fas fa-file-alt fa-2x mb-3" style="opacity:0.3"></i>
+                <p>Summary not available. Ensure the Groq API key is set in <code>.env</code>.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Key Findings -->
+<div class="tab-pane" id="tab-findings">
+    <div class="card">
+        <div class="card-header">
+            <span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                <i class="fas fa-lightbulb me-2"></i>Key Legal Findings
+            </span>
+        </div>
+        <div class="card-body p-4">
+            {% if key_findings %}
+            {% for f in key_findings %}
+            <div class="finding-card">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:6px">
+                    <i class="fas fa-gavel me-2" style="color:var(--gold)"></i>{{ f.finding }}
+                </div>
+                {% if f.legal_principle and f.legal_principle != 'N/A' %}
+                <div style="font-size:0.76rem;color:var(--gold);margin-bottom:4px"><i class="fas fa-balance-scale me-1"></i><strong>Principle:</strong> {{ f.legal_principle }}</div>
+                {% endif %}
+                {% if f.significance and f.significance != 'N/A' %}
+                <div style="font-size:0.76rem;color:var(--text-muted)"><i class="fas fa-star me-1"></i>{{ f.significance }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% elif document.status == 'completed' %}
+            <p style="color:var(--text-muted);font-size:0.875rem">No structured findings were extracted from this document.</p>
+            {% else %}
+            <div class="text-center py-4" style="color:var(--text-muted)">
+                <i class="fas fa-spinner fa-spin me-2" style="color:var(--gold)"></i>Processing…
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Case Details / Metadata -->
+<div class="tab-pane" id="tab-metadata">
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px"><i class="fas fa-folder me-2"></i>Case Information</span></div>
+                <div class="card-body p-3">
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_title">Title</span><span class="meta-value">{{ document.title }}</span></div>
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_document_type">Document Type</span><span class="meta-value">{{ document.get_document_type_display }}</span></div>
+                    {% if document.case_number %}<div class="meta-row"><span class="meta-label" data-i18n="label_case_no">Case No.</span><span class="meta-value" style="color:var(--gold);font-family:'IBM Plex Mono',monospace">{{ document.case_number }}</span></div>{% endif %}
+                    {% if document.court_name %}<div class="meta-row"><span class="meta-label" data-i18n="label_court">Court</span><span class="meta-value">{{ document.court_name }}</span></div>{% endif %}
+                    {% if document.filing_date %}<div class="meta-row"><span class="meta-label" data-i18n="label_filed">Filed</span><span class="meta-value">{{ document.filing_date|date:"d F Y" }}</span></div>{% endif %}
+                    {% if document.description %}<div class="meta-row"><span class="meta-label" data-i18n="label_description">Description</span><span class="meta-value" style="font-size:0.8rem">{{ document.description }}</span></div>{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px"><i class="fas fa-microchip me-2"></i>Processing Details</span></div>
+                <div class="card-body p-3">
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_status">Status</span><span class="meta-value"><span class="badge-status badge-{{ document.status }}">{{ document.get_status_display }}</span></span></div>
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_size">Size</span><span class="meta-value">{{ document.get_file_size_display }}</span></div>
+                    {% if document.word_count %}<div class="meta-row"><span class="meta-label" data-i18n="label_words">Word Count</span><span class="meta-value" style="font-family:'IBM Plex Mono',monospace">{{ document.word_count|floatformat:"0" }} words</span></div>{% endif %}
+                    {% if document.chunk_count %}<div class="meta-row"><span class="meta-label" data-i18n="label_chunks">AI Chunks Processed</span><span class="meta-value" style="font-family:'IBM Plex Mono',monospace;color:var(--gold)">{{ document.chunk_count }} chunk{{ document.chunk_count|pluralize }}</span></div>{% endif %}
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_ai_summary">AI Summary</span>
+                        <span class="meta-value">
+                            {% if document.summary %}<span style="color:#2ecc71"><i class="fas fa-check-circle me-1"></i>Complete</span>{% else %}<span style="color:var(--text-muted)">Not available</span>{% endif %}
+                        </span>
+                    </div>
+                    {% if document.summary_generated_at %}<div class="meta-row"><span class="meta-label" data-i18n="label_summary_gen">Summary Generated</span><span class="meta-value" style="color:#2ecc71">{{ document.summary_generated_at|date:"d M Y, H:i" }}</span></div>{% endif %}
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_vector_store">Vector Store</span><span class="meta-value" style="color:{% if document.vector_store_path %}#2ecc71{% else %}var(--text-muted){% endif %}">{% if document.vector_store_path %}<i class="fas fa-database me-1"></i>FAISS Indexed{% else %}Not indexed{% endif %}</span></div>
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_uploaded">Uploaded</span><span class="meta-value">{{ document.created_at|date:"d M Y, H:i" }}</span></div>
+                    <div class="meta-row"><span class="meta-label" data-i18n="label_last_updated">Last Updated</span><span class="meta-value">{{ document.updated_at|date:"d M Y, H:i" }}</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Embedded PDF Viewer (PDF.js canvas renderer) -->
+<div class="tab-pane" id="tab-viewer">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                <i class="fas fa-file-pdf me-2"></i>Original Document
+            </span>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:3px 8px">
+                    <button onclick="pdfPrevPage()" id="pdfPrev" style="background:none;border:none;color:var(--gold);cursor:pointer;padding:0 4px;font-size:0.8rem">&#8249;</button>
+                    <span style="font-size:0.72rem;color:var(--text-muted);min-width:80px;text-align:center">
+                        Page <span id="pdfPageNum">—</span> of <span id="pdfPageCount">—</span>
+                    </span>
+                    <button onclick="pdfNextPage()" id="pdfNext" style="background:none;border:none;color:var(--gold);cursor:pointer;padding:0 4px;font-size:0.8rem">&#8250;</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:3px 8px">
+                    <button onclick="pdfZoom(-0.2)" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.85rem;padding:0 3px">−</button>
+                    <span id="pdfZoomLabel" style="font-size:0.72rem;color:var(--text-muted);min-width:38px;text-align:center">100%</span>
+                    <button onclick="pdfZoom(0.2)" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.85rem;padding:0 3px">+</button>
+                </div>
+                <span style="font-size:0.7rem;color:var(--text-muted)">{{ document.filename }}</span>
+                <a href="{{ document.file.url }}" download
+                   style="font-size:0.72rem;padding:3px 10px;border-radius:6px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:var(--gold);text-decoration:none">
+                    <i class="fas fa-download me-1"></i>Download
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0" style="background:#111827;min-height:85vh;position:relative">
+            {% with ext=document.filename|lower %}
+            {% if ext|slice:"-4:" == ".pdf" or document.file.url|lower|slice:"-4:" == ".pdf" %}
+            <div id="pdfLoading" style="text-align:center;padding:4rem;color:var(--text-muted)">
+                <i class="fas fa-spinner fa-spin fa-2x mb-3" style="color:var(--gold);display:block"></i>
+                Loading document…
+            </div>
+            <div id="pdfError" style="display:none;text-align:center;padding:3rem 2rem">
+                <i class="fas fa-exclamation-circle" style="font-size:2.5rem;color:#e74c3c;margin-bottom:1rem;display:block"></i>
+                <p style="color:var(--text-muted);margin-bottom:1.2rem" id="pdfErrorMsg">Could not load PDF.</p>
+                <a href="{{ document.file.url }}" download class="btn btn-gold me-2">
+                    <i class="fas fa-download me-2"></i>Download PDF
+                </a>
+                <a href="{{ document.file.url }}" target="_blank" class="btn-outline-gold"
+                   style="text-decoration:none;padding:0.5rem 1.1rem;border-radius:8px;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fas fa-external-link-alt"></i>Open in New Tab
+                </a>
+            </div>
+            <div id="pdfCanvasWrap" style="display:none;overflow-y:auto;max-height:85vh;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:12px">
+                <canvas id="pdfCanvas" style="max-width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.5);border-radius:4px;background:#fff"></canvas>
+            </div>
+            <script>
+                window.COURT_PDF_URL = "{{ document.file.url }}";
+            </script>
+            {% else %}
+            <div style="text-align:center;padding:4rem 2rem">
+                <div style="width:72px;height:72px;background:rgba(201,168,76,0.1);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--gold);margin-bottom:1.25rem">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h5 style="font-family:'Playfair Display',serif;color:var(--text);margin-bottom:0.5rem">{{ document.filename }}</h5>
+                <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem">This file type cannot be previewed inline.</p>
+                <a href="{{ document.file.url }}" download class="btn btn-gold">
+                    <i class="fas fa-download me-2"></i>Download File
+                </a>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const el = document.getElementById("summaryContent");
+    let raw = el.dataset.summary;
+
+    if (!raw) return;
+
+    try {
+        raw = JSON.parse('"' + raw.replace(/"/g, '\\"') + '"');
+    } catch (e) {
+        console.warn("Decode failed:", e);
+    }
+    raw = raw.replace(/\\n/g, '\n');
+    el.innerHTML = marked.parse(raw);
+});
+</script>
+<script>
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+    });
+});
+
+// ── PDF.js viewer ──────────────────────────────────────────────────────────
+if (window.COURT_PDF_URL) {
+    let pdfDoc = null, currentPage = 1, totalPages = 0, scale = 1.3;
+
+    const loadingEl   = document.getElementById('pdfLoading');
+    const errorEl     = document.getElementById('pdfError');
+    const errorMsg    = document.getElementById('pdfErrorMsg');
+    const canvasWrap  = document.getElementById('pdfCanvasWrap');
+    const canvas      = document.getElementById('pdfCanvas');
+    const ctx         = canvas.getContext('2d');
+    const pageNumEl   = document.getElementById('pdfPageNum');
+    const pageCountEl = document.getElementById('pdfPageCount');
+    const zoomLabel   = document.getElementById('pdfZoomLabel');
+
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = () => {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.getDocument(window.COURT_PDF_URL).promise
+            .then(pdf => {
+                pdfDoc     = pdf;
+                totalPages = pdf.numPages;
+                pageCountEl.textContent  = totalPages;
+                loadingEl.style.display  = 'none';
+                canvasWrap.style.display = 'flex';
+                renderPage(1);
+            })
+            .catch(err => {
+                loadingEl.style.display = 'none';
+                errorMsg.textContent    = 'Failed to load PDF: ' + err.message;
+                errorEl.style.display   = 'block';
+            });
+    };
+    script.onerror = () => {
+        loadingEl.style.display = 'none';
+        errorMsg.textContent    = 'Could not load PDF renderer. Check your internet connection.';
+        errorEl.style.display   = 'block';
+    };
+    document.head.appendChild(script);
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(page => {
+            const viewport = page.getViewport({ scale });
+            canvas.width   = viewport.width;
+            canvas.height  = viewport.height;
+            page.render({ canvasContext: ctx, viewport }).promise.then(() => {
+                currentPage = num;
+                pageNumEl.textContent = num;
+                document.getElementById('pdfPrev').disabled = num <= 1;
+                document.getElementById('pdfNext').disabled = num >= totalPages;
+                zoomLabel.textContent = Math.round(scale * 100) + '%';
+            });
+        });
+    }
+
+    window.pdfPrevPage = () => { if (currentPage > 1) renderPage(currentPage - 1); };
+    window.pdfNextPage = () => { if (currentPage < totalPages) renderPage(currentPage + 1); };
+    window.pdfZoom = (delta) => {
+        scale = Math.min(3, Math.max(0.5, scale + delta));
+        renderPage(currentPage);
+    };
+}
+
+{% if document.status == 'processing' or document.status == 'pending' %}
+function checkStatus() {
+    fetch("{% url 'documents:status' document.pk %}")
+        .then(r => r.json())
+        .then(d => { if (d.status === 'completed' || d.status === 'failed') location.reload(); else setTimeout(checkStatus, 6000); })
+        .catch(() => setTimeout(checkStatus, 8000));
+}
+setTimeout(checkStatus, 6000);
+{% endif %}
+</script>
+
+{% if user.profile.language != 'en' %}
+<script>
+const CSRF_T = '{{ csrf_token }}';
+const TRANSLATE_URL = "{% url 'documents:translate' document.pk %}";
+const USER_LANG = "{{ user.profile.language }}";
+function loadTranslation() {
+    const btn = document.getElementById('transBtn');
+    const status = document.getElementById('transStatus');
+    const cache = document.getElementById('transCache');
+    if (!btn || !status || !cache) return;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Translating…';
+    btn.disabled = true;
+    fetch(TRANSLATE_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF_T, 'Content-Type': 'application/json' } })
+    .then(r => r.json())
+    .then(data => {
+        if (data.translated) {
+            const el = document.getElementById('summaryContent');
+            if (el) el.innerHTML = marked.parse(data.translated);
+            status.innerHTML = '<i class="fas fa-check-circle me-1" style="color:#2ecc71"></i>Translated to ' + (USER_LANG === 'hi' ? 'Hindi' : 'Tamil');
+            cache.style.display = 'inline';
+            cache.innerHTML = data.cached ? '<i class="fas fa-database me-1" style="color:var(--gold)"></i>Loaded from cache' : '<i class="fas fa-save me-1" style="color:#2ecc71"></i>Translation saved';
+            btn.style.display = 'none';
+        } else {
+            btn.innerHTML = '<i class="fas fa-globe me-1"></i>Retry';
+            btn.disabled = false;
+        }
+    }).catch(() => {
+        btn.innerHTML = '<i class="fas fa-globe me-1"></i>Retry';
+        btn.disabled = false;
+    });
+}
+window.loadTranslation = loadTranslation;
+function initTranslationButton() {
+    const btn = document.getElementById('transBtn');
+    if (!btn) return;
+    btn.addEventListener('click', loadTranslation);
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTranslationButton);
+} else {
+    initTranslationButton();
+}
+</script>
+{% endif %}
+{% endblock %}

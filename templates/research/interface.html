@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% block title %}Research — {{ document.title }}{% endblock %}
+{% block extra_css %}
+<style>
+.suggestion-btn {
+    background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.2);
+    color: var(--gold); font-size: 0.72rem; padding: 4px 11px;
+    border-radius: 20px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.suggestion-btn:hover { background: rgba(201,168,76,0.18); }
+.answer-card {
+    background: rgba(201,168,76,0.04); border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px; padding: 1.25rem; margin-bottom: 0.8rem;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.answer-q { font-size: 0.82rem; font-weight: 600; color: var(--gold); margin-bottom: 0.75rem; display:flex; align-items:flex-start; gap:8px; }
+.source-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius:6px; padding: 0.5rem 0.75rem; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem; line-height:1.5; }
+.prev-q-card { background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <a href="{% url 'documents:detail' document.pk %}" style="color:var(--text-muted);text-decoration:none;font-size:0.83rem">
+            <i class="fas fa-arrow-left me-1"></i>Back to Document
+        </a>
+        <div class="section-eyebrow mt-2" data-i18n="eyebrow_research">AI Research Assistant</div>
+        <h2 class="section-title mb-0">{{ document.title|truncatechars:65 }}</h2>
+        <div style="font-size:0.95rem;color:var(--text-muted);margin-top:4px;display:flex;gap:14px;flex-wrap:wrap">
+            Research The Case Document for any Legal Query
+        </div>
+    </div>
+    <a href="{% url 'research:history' %}" class="btn-ghost" style="font-size:0.82rem" data-i18n="nav_history">
+        <i class="fas fa-history me-2"></i>Research History
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Query panel -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body p-4">
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--slate);margin-bottom:8px" data-i18n="label_query">Research Query</div>
+                <textarea id="queryInput" class="form-control" rows="3"
+                    placeholder="Ask a specific legal question about this document — parties, holdings, dates, commercial implications, applicable statutes…"
+                    data-i18n-placeholder="query_placeholder"></textarea>
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <div class="d-flex gap-1 flex-wrap">
+                        <button class="suggestion-btn" onclick="useQ(this)">What are the key holdings?</button>
+                        <button class="suggestion-btn" onclick="useQ(this)">Who are the parties?</button>
+                        <button class="suggestion-btn" onclick="useQ(this)">What damages were awarded?</button>
+                        <button class="suggestion-btn" onclick="useQ(this)">What commercial law applies?</button>
+                    </div>
+                    <button id="submitBtn" onclick="submitQuery()" class="btn btn-gold" style="flex-shrink:0" data-i18n="btn_research_submit">
+                        <i class="fas fa-search me-2"></i>Research
+                    </button>
+                </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px" data-i18n="hint_ctrl_enter">
+                    <i class="fas fa-keyboard me-1"></i>Ctrl+Enter to submit · Results are saved permanently
+                </div>
+            </div>
+        </div>
+
+        <!-- Live results appear here -->
+        <div id="resultsContainer"></div>
+
+        <!-- Previous queries on this document -->
+        {% if previous_queries %}
+        <div class="mt-3">
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--slate);margin-bottom:0.75rem">
+                <i class="fas fa-history me-1"></i><span data-i18n="prev_queries_label">Previous Queries on This Document</span>
+            </div>
+            {% for q in previous_queries %}
+            <div class="prev-q-card">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:0.8rem;font-weight:600;color:var(--gold);margin-bottom:4px">
+                            <i class="fas fa-question-circle me-1"></i>{{ q.query_text }}
+                        </div>
+                        {% if q.response_text %}
+                        <div style="font-size:0.76rem;color:var(--text-muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5">
+                            {{ q.get_response_preview }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                        <span style="font-size:0.68rem;color:var(--text-muted);white-space:nowrap">{{ q.created_at|date:"d M Y, H:i" }}</span>
+                        <a href="{% url 'research:query_detail' q.id %}" class="btn-outline-gold"
+                           style="font-size:0.7rem;padding:3px 9px;border-radius:6px;text-decoration:none;white-space:nowrap" data-i18n="btn_full_answer">
+                            <i class="fas fa-expand-alt me-1"></i>Full Answer
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="text-center mt-2">
+                <a href="{% url 'research:history' %}?doc={{ document.pk }}" style="font-size:0.78rem;color:var(--text-muted);text-decoration:none">
+                    <i class="fas fa-history me-1"></i>View all queries for this document →
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card" style="position:sticky;top:78px">
+            <div class="card-header">
+                <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-info-circle me-2"></i><span data-i18n="tip_title">Document Context</span>
+                </span>
+            </div>
+            <div class="card-body p-3">
+                {% if document.case_number %}
+                <div class="mb-2">
+                    <div style="font-size:0.67rem;color:var(--text-muted)" data-i18n="label_case_no">Case Number</div>
+                    <div style="font-size:0.82rem;color:var(--gold);font-family:'IBM Plex Mono',monospace">{{ document.case_number }}</div>
+                </div>
+                {% endif %}
+                {% if document.court_name %}
+                <div class="mb-2">
+                    <div style="font-size:0.67rem;color:var(--text-muted)" data-i18n="label_court">Court</div>
+                    <div style="font-size:0.82rem;color:var(--text)">{{ document.court_name }}</div>
+                </div>
+                {% endif %}
+                <div class="mb-2">
+                    <div style="font-size:0.67rem;color:var(--text-muted)" data-i18n="label_type">Document Type</div>
+                    <div style="font-size:0.82rem;color:var(--text)">{{ document.get_document_type_display }}</div>
+                </div>
+                {% if document.chunk_count %}
+                <div class="mb-2">
+                    <div style="font-size:0.67rem;color:var(--text-muted)" data-i18n="label_chunks">Vector Chunks Indexed</div>
+                    <div style="font-size:0.82rem;color:var(--gold)">{{ document.chunk_count }} chunks</div>
+                </div>
+                {% endif %}
+                <hr class="gold-divider" style="margin:0.75rem 0">
+                <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px" data-i18n="tip_title">Research Tips</div>
+                <ul style="font-size:0.74rem;color:var(--text-muted);padding-left:1.1rem;margin:0;line-height:1.8">
+                    <li data-i18n="tip1">Ask about specific parties or dates</li>
+                    <li data-i18n="tip2">Query legal principles applied</li>
+                    <li data-i18n="tip3">Ask for monetary amounts or relief</li>
+                    <li data-i18n="tip4">Request procedural history</li>
+                    <li data-i18n="tip5">All answers are saved to history</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+const QUERY_URL = "{% url 'research:query' document.pk %}";
+
+function useQ(btn) {
+    document.getElementById('queryInput').value = btn.textContent.trim();
+    document.getElementById('queryInput').focus();
+}
+
+function submitQuery() {
+    const query = document.getElementById('queryInput').value.trim();
+    if (!query) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>' + (btn.getAttribute('data-i18n') === 'btn_research_submit' ? 'Researching…' : 'Researching…');
+    btn.disabled = true;
+
+    // Optimistic placeholder
+    const container = document.getElementById('resultsContainer');
+    const card = document.createElement('div');
+    card.className = 'answer-card';
+    card.innerHTML = `
+        <div class="answer-q"><i class="fas fa-question-circle" style="margin-top:2px;flex-shrink:0"></i>${escHtml(query)}</div>
+        <div style="text-align:center;padding:1.5rem 0;color:var(--text-muted)">
+            <i class="fas fa-spinner fa-spin me-2" style="color:var(--gold)"></i>
+            Searching FAISS index and generating answer…
+        </div>`;
+    container.insertBefore(card, container.firstChild);
+
+    fetch(QUERY_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken': CSRF},
+        body: JSON.stringify({query})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            card.innerHTML = `
+                <div class="answer-q"><i class="fas fa-question-circle" style="flex-shrink:0"></i>${escHtml(query)}</div>
+                <div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle me-1"></i>${escHtml(data.error)}</div>`;
+        } else {
+            let srcHtml = '';
+            if (data.sources && data.sources.length) {
+                srcHtml = `<div style="margin-top:1rem">
+                    <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--slate);margin-bottom:4px">
+                        <i class="fas fa-database me-1" style="color:var(--gold)"></i>Source Passages (FAISS)
+                    </div>
+                    ${data.sources.slice(0,2).map((s,i)=>`<div class="source-block"><strong>Passage ${i+1}:</strong> ${escHtml(s.substring(0,220))}…</div>`).join('')}
+                </div>`;
+            }
+            const detailUrl = data.detail_url || '#';
+            const langBadge = (data.lang && data.lang !== 'en')
+                ? `<span style="background:rgba(52,152,219,0.12);border:1px solid rgba(52,152,219,0.3);color:#5dade2;border-radius:6px;padding:2px 8px;font-size:0.68rem;margin-left:6px">
+                       <i class="fas fa-language me-1"></i>${data.lang === 'hi' ? 'Hindi' : 'Tamil'}
+                       ${data.translation_cached ? '· <i class="fas fa-database me-1"></i>cached' : '· <i class="fas fa-save me-1"></i>saved'}
+                   </span>` : '';
+            card.innerHTML = `
+                <div class="answer-q"><i class="fas fa-question-circle" style="margin-top:2px;flex-shrink:0"></i>${escHtml(query)}</div>
+                <div class="ai-output" id="ans-${data.query_id}"></div>
+                ${srcHtml}
+                <div style="display:flex;gap:8px;align-items:center;margin-top:0.9rem;padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.06);flex-wrap:wrap">
+                    <a href="${detailUrl}" class="btn-outline-gold" style="font-size:0.75rem;padding:4px 12px;border-radius:7px;text-decoration:none">
+                        <i class="fas fa-expand-alt me-1"></i>View Full Answer
+                    </a>
+                    <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">
+                        <i class="fas fa-check-circle me-1" style="color:#2ecc71"></i>Saved to research history
+                    </span>
+                    ${langBadge}
+                </div>`;
+            document.getElementById(`ans-${data.query_id}`).innerHTML = marked.parse(data.answer);
+        }
+        btn.innerHTML = '<i class="fas fa-search me-2"></i>Research';
+        btn.disabled = false;
+        document.getElementById('queryInput').value = '';
+    })
+    .catch(() => {
+        card.innerHTML = `<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle me-1"></i>Network error. Please try again.</div>`;
+        btn.innerHTML = '<i class="fas fa-search me-2"></i>Research';
+        btn.disabled = false;
+    });
+}
+
+document.getElementById('queryInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitQuery();
+});
+
+function escHtml(s) {
+    const d = document.createElement('div'); d.textContent = String(s||''); return d.innerHTML;
+}
+</script>
+{% endblock %}

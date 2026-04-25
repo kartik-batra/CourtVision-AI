@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}{% if note %}Edit Note{% else %}New Note{% endif %} — CourtVision AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.color-swatch {
+    width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: all 0.15s; flex-shrink: 0;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+#noteContent {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.9rem; line-height: 1.8; resize: vertical; min-height: 320px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text); border-radius: 10px; padding: 1rem; width: 100%;
+    transition: border-color 0.2s;
+}
+#noteContent:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
+#charCount { font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 4px; }
+.toolbar-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-muted); padding: 4px 8px; border-radius: 6px;
+    cursor: pointer; font-size: 0.75rem; transition: all 0.15s; margin-right: 3px;
+}
+.toolbar-btn:hover { background: rgba(201,168,76,0.1); color: var(--gold); border-color: rgba(201,168,76,0.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="mb-4">
+            <a href="{% if note %}{% url 'notes:detail' note.pk %}{% else %}{% url 'notes:notes' %}{% endif %}"
+               style="color:var(--text-muted);text-decoration:none;font-size:0.83rem">
+                <i class="fas fa-arrow-left me-1"></i>{% if note %}Back to Note{% else %}Back to Notes{% endif %}
+            </a>
+            <div class="section-eyebrow mt-2">{% if note %}Edit{% else %}Create{% endif %}</div>
+            <h2 class="section-title mb-0">{% if note %}Edit Note{% else %}New Note{% endif %}</h2>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" id="noteForm" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Title -->
+                    <div class="mb-3">
+                        <label class="form-label">Title <span style="color:#e74c3c">*</span></label>
+                        <input type="text" name="title" id="noteTitle" class="form-control"
+                               value="{% if note %}{{ note.title }}{% elif post %}{{ post.title }}{% endif %}"
+                               placeholder="e.g., Key argument — Anil Kumar Pitti case"
+                               required autofocus>
+                    </div>
+
+                    <!-- Content toolbar -->
+                    <div class="mb-1">
+                        <label class="form-label">Content</label>
+                        <div style="margin-bottom:6px">
+                            <button type="button" class="toolbar-btn" onclick="wrapText('**','**')" title="Bold"><b>B</b></button>
+                            <button type="button" class="toolbar-btn" onclick="wrapText('*','*')" title="Italic"><i>I</i></button>
+                            <button type="button" class="toolbar-btn" onclick="insertLine('## ')" title="Heading">H</button>
+                            <button type="button" class="toolbar-btn" onclick="insertLine('- ')" title="List item">• List</button>
+                            <button type="button" class="toolbar-btn" onclick="insertLine('> ')" title="Quote">❝</button>
+                            <button type="button" class="toolbar-btn" onclick="insertLine('---\n')" title="Divider">—</button>
+                        </div>
+                    </div>
+                    <textarea name="content" id="noteContent"
+                        placeholder="Write your legal notes here…&#10;&#10;Supports markdown: **bold**, *italic*, ## headings, - lists">{% if note %}{{ note.content }}{% elif post %}{{ post.content }}{% endif %}</textarea>
+                    <div id="charCount">0 characters</div>
+
+                    <div class="row g-3 mt-2">
+                        <!-- Tag -->
+                        <div class="col-md-5">
+                            <label class="form-label">Tag <span style="color:var(--slate);font-weight:400;text-transform:none">(optional)</span></label>
+                            <input type="text" name="tag" class="form-control"
+                                   value="{% if note %}{{ note.tag }}{% elif post %}{{ post.tag }}{% endif %}"
+                                   placeholder="e.g., Important, Appeal, Evidence"
+                                   list="existingTags">
+                            <datalist id="existingTags">
+                                {% for t in request.user.notes.values_list %}
+                                {% if t %}<option value="{{ t }}">{% endif %}
+                                {% endfor %}
+                            </datalist>
+                        </div>
+
+                        <!-- Tag colour -->
+                        <div class="col-md-4">
+                            <label class="form-label">Tag Colour</label>
+                            <input type="hidden" name="tag_color" id="tagColorInput" value="{% if note %}{{ note.tag_color }}{% else %}gold{% endif %}">
+                            <div class="d-flex gap-2 align-items-center" style="margin-top:6px">
+                                {% for code, hex in tag_colors %}
+                                <div class="color-swatch {% if note and note.tag_color == code %}selected{% elif not note and code == 'gold' %}selected{% endif %}"
+                                     style="background:{{ hex }}"
+                                     onclick="selectColor('{{ code }}', this)"
+                                     title="{{ code|title }}"></div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Linked document -->
+                        <div class="col-md-3">
+                            <label class="form-label">Link to Case <span style="color:var(--slate);font-weight:400;text-transform:none">(optional)</span></label>
+                            <select name="document" class="form-control form-select" style="font-size:0.8rem">
+                                <option value="">— None —</option>
+                                {% for doc in documents %}
+                                <option value="{{ doc.id }}"
+                                    {% if note and note.document_id == doc.id %}selected
+                                    {% elif preselected_doc and preselected_doc.id == doc.id %}selected
+                                    {% elif post and post.document == doc.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ doc.title|truncatechars:40 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pin -->
+                    <div class="mt-3 mb-4">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+                            <input type="checkbox" name="is_pinned" style="width:16px;height:16px;accent-color:var(--gold)"
+                                   {% if note and note.is_pinned %}checked{% endif %}>
+                            <span style="font-size:0.83rem;color:var(--text-muted)">
+                                <i class="fas fa-thumbtack me-1" style="color:var(--gold)"></i>Pin this note to the top
+                            </span>
+                        </label>
+                    </div>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger mb-3">Please correct the errors below.</div>
+                    {% endif %}
+
+                    <div class="d-flex gap-3 align-items-center">
+                        <button type="submit" class="btn btn-gold px-4">
+                            <i class="fas fa-save me-2"></i>{% if note %}Save Changes{% else %}Create Note{% endif %}
+                        </button>
+                        <a href="{% if note %}{% url 'notes:detail' note.pk %}{% else %}{% url 'notes:notes' %}{% endif %}"
+                           class="btn-ghost">Cancel</a>
+                        {% if note %}
+                        <a href="{% url 'notes:delete' note.pk %}"
+                           style="margin-left:auto;font-size:0.8rem;color:rgba(231,76,60,0.7);text-decoration:none">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Char counter
+const ta = document.getElementById('noteContent');
+const cc = document.getElementById('charCount');
+function updateCount() { cc.textContent = ta.value.length + ' characters'; }
+ta.addEventListener('input', updateCount);
+updateCount();
+
+// Toolbar helpers
+function wrapText(before, after) {
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const sel = ta.value.substring(s, e) || 'text';
+    ta.value = ta.value.substring(0, s) + before + sel + after + ta.value.substring(e);
+    ta.selectionStart = s + before.length;
+    ta.selectionEnd   = s + before.length + sel.length;
+    ta.focus(); updateCount();
+}
+function insertLine(prefix) {
+    const s = ta.selectionStart;
+    const lineStart = ta.value.lastIndexOf('\n', s - 1) + 1;
+    ta.value = ta.value.substring(0, lineStart) + prefix + ta.value.substring(lineStart);
+    ta.selectionStart = ta.selectionEnd = lineStart + prefix.length;
+    ta.focus(); updateCount();
+}
+
+// Colour picker
+function selectColor(code, el) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('tagColorInput').value = code;
+}
+
+// Keyboard shortcut: Ctrl+S to save
+document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault(); document.getElementById('noteForm').submit();
+    }
+});
+</script>
+{% endblock %}

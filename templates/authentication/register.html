@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Register — CourtVision AI{% endblock %}
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="text-center mb-4">
+            <div class="section-eyebrow">Join the Platform</div>
+            <h1 class="section-title">Create Your Account</h1>
+            <p style="color:var(--text-muted);font-size:0.875rem">Register as a legal professional on CourtVision AI</p>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                    <i class="fas fa-user-plus me-2"></i>Professional Information
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            {{ form.last_name }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" data-i18n="label_username">Username</label>
+                            {{ form.username }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" data-i18n="label_email">Email Address</label>
+                            {{ form.email }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Role</label>
+                            {{ form.role }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Bar Number <span style="color:var(--slate);font-weight:400;text-transform:none">(optional)</span></label>
+                            {{ form.bar_number }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Court / Organization Affiliation</label>
+                            {{ form.court_affiliation }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" data-i18n="label_phone">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                    </div>
+                    <hr class="gold-divider">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label" data-i18n="label_password">Password</label>
+                            {{ form.password1 }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Confirm Password</label>
+                            {{ form.password2 }}
+                        </div>
+                    </div>
+                    {% if form.errors %}
+                    <div class="alert alert-danger mb-3">
+                        {% for field, errors in form.errors.items %}{% for error in errors %}<div><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-gold w-100 py-2" data-i18n="btn_create_account">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+        <p class="text-center mt-3" style="font-size:0.875rem;color:var(--text-muted)">
+            Already have an account? <a href="{% url 'authentication:login' %}" style="color:var(--gold);text-decoration:none;font-weight:600" data-i18n="sign_in_link">Sign In</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
