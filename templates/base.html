@@ -69,7 +69,7 @@
 {% if user.is_authenticated %}
 <nav class="navbar navbar-expand-lg sticky-top">
     <div class="container-fluid px-4">
-        <a class="navbar-brand" href="{% url 'documents:list' %}">
+        <a class="navbar-brand" href="{% url 'pages:home' %}">
             <div class="brand-icon"><i class="fas fa-balance-scale"></i></div>
             <div>CourtVision AI<span class="brand-sub">Commercial Courts Intelligence</span></div>
         </a>
@@ -102,6 +102,12 @@
                     <a class="nav-link {% if current == 'notes' %}active{% endif %}"
                     href="{% url 'notes:notes' %}">
                         Notes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if current == 'pages' %}active{% endif %}"
+                    href="{% url 'pages:contact' %}">
+                        Contact Us
                     </a>
                 </li>
 
@@ -231,7 +237,7 @@
                 <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:0.9rem">Quick Links</div>
                 <ul style="list-style:none;padding:0;margin:0">
                     <li style="margin-bottom:0.5rem"><a href="/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-home me-2" style="width:14px"></i>Home</a></li>
-                    <li style="margin-bottom:0.5rem"><a href="/about/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-info-circle me-2" style="width:14px"></i>About</a></li>
+                    <li style="margin-bottom:0.5rem"><a href="/contact/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-info-circle me-2" style="width:14px"></i>About</a></li>
                     <li style="margin-bottom:0.5rem"><a href="/contact/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-envelope me-2" style="width:14px"></i>Contact Us</a></li>
                     {% if user.is_superuser %}
                         <li style="margin-bottom:0.5rem"><a href="/admin/" style="font-size:0.8rem;color:var(--slate);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--slate)'"><i class="fas fa-cog me-2" style="width:14px"></i>Admin Panel</a></li>

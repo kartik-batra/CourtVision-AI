@@ -1,0 +1,501 @@
+{% extends 'base.html' %}
+{% block title %}Contact Us — CourtVision AI{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Public nav (unauthenticated) ──────────────────────────────────────────── */
+.public-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(10,22,40,0.95); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border); padding: 0.85rem 0;
+}
+.btn-hero-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--navy); font-weight: 700; font-size: 0.85rem;
+    padding: 0.45rem 1.1rem; border-radius: 8px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+}
+.btn-hero-primary:hover { opacity: 0.9; color: var(--navy); text-decoration: none; }
+
+/* ── Section styles ─────────────────────────────────────────────────────────── */
+.page-hero {
+    background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 60%);
+    padding: 5rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+}
+.about-section { padding: 5rem 0; }
+.team-section {
+    padding: 5rem 0;
+    background: rgba(10,22,40,0.5);
+}
+.contact-section { padding: 5rem 0; }
+
+/* ── Team card ──────────────────────────────────────────────────────────────── */
+.team-card {
+    background: rgba(17,34,64,0.8);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 2.5rem 1.75rem;
+    text-align: center; height: 100%;
+    transition: all 0.25s;
+}
+.team-card:hover {
+    border-color: rgba(201,168,76,0.5);
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+.team-avatar {
+    width: 88px; height: 88px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700;
+    color: var(--navy); margin: 0 auto 1.25rem;
+    box-shadow: 0 0 0 4px rgba(201,168,76,0.15);
+}
+.team-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; font-weight: 700;
+    color: var(--text); margin-bottom: 4px;
+}
+.team-role {
+    font-size: 0.75rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--gold); margin-bottom: 1rem;
+}
+.team-bio {
+    font-size: 0.82rem; color: var(--text-muted);
+    line-height: 1.7;
+}
+.team-social {
+    margin-top: 1.25rem;
+    display: flex; justify-content: center; gap: 10px;
+}
+.social-btn {
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 0.85rem; text-decoration: none;
+    transition: all 0.15s;
+}
+.social-btn:hover { background: rgba(201,168,76,0.1); border-color: var(--gold); color: var(--gold); }
+
+/* ── About value cards ──────────────────────────────────────────────────────── */
+.value-card {
+    background: rgba(17,34,64,0.6);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.75rem;
+    height: 100%; transition: border-color 0.2s;
+}
+.value-card:hover { border-color: rgba(201,168,76,0.35); }
+.value-icon {
+    width: 46px; height: 46px;
+    background: rgba(201,168,76,0.1); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; color: var(--gold); margin-bottom: 1rem;
+}
+
+/* ── Contact form ───────────────────────────────────────────────────────────── */
+.contact-form-card {
+    background: rgba(17,34,64,0.8);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+}
+.contact-info-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.contact-info-item:last-child { border-bottom: none; }
+.contact-info-icon {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; font-size: 0.9rem; color: var(--gold);
+}
+
+/* ── Timeline ───────────────────────────────────────────────────────────────── */
+.timeline-item {
+    display: flex; gap: 16px; margin-bottom: 1.5rem;
+}
+.timeline-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0; margin-top: 5px;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.2);
+}
+.timeline-line {
+    width: 2px; background: rgba(201,168,76,0.15);
+    margin: 0 5px; flex-shrink: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% comment %} <style>.main-content { padding: 0 !important; }</style> {% endcomment %}
+
+<!-- ── Public Navbar ─────────────────────────────────────────────────────────── -->
+{% if not user.is_authenticated %}
+<nav class="public-nav">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="{% url 'pages:home' %}">
+            <div class="brand-icon"><i class="fas fa-balance-scale"></i></div>
+            <div>CourtVision AI<span class="brand-sub">Commercial Courts Intelligence</span></div>
+        </a>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'pages:home' %}" style="font-size:0.95rem;color:var(--text-muted);text-decoration:none;transition:color 0.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">Home</a>
+            <a href="{% url 'pages:contact' %}" style="font-size:0.95rem;color:var(--text-muted);text-decoration:none;transition:color 0.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">Contact Us</a>
+            <a href="{% url 'authentication:login' %}" style="font-size:0.95rem;color:var(--text-muted);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">Sign In</a>
+            <a href="{% url 'authentication:register' %}" class="btn-hero-primary" style="font-size:0.95rem;padding:0.45rem 1.1rem">
+                Get Started <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</nav>
+{% endif %}
+
+<!-- ── Page Hero ──────────────────────────────────────────────────────────────── -->
+{% comment %} <div class="page-hero" style="{% if not user.is_authenticated %}padding-top:6rem{% endif %}">
+    <div class="container-fluid px-4">
+        {% if not user.is_authenticated %}
+        <nav style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.5rem">
+            <a href="{% url 'pages:home' %}" style="color:var(--text-muted);text-decoration:none">Home</a>
+            <span class="mx-2" style="opacity:0.4">/</span>
+            <span style="color:var(--gold)">Contact & About</span>
+        </nav>
+        {% endif %}
+        <div class="section-eyebrow">Get in Touch</div>
+        <h1 class="section-title" style="font-size:2.2rem;margin-bottom:0.75rem">Contact Us & About</h1>
+        <p style="color:var(--text-muted);font-size:0.95rem;max-width:500px;margin:0 auto">
+            Have questions about CourtVision AI? Want to collaborate? Meet the team behind the platform.
+        </p>
+    </div>
+</div> {% endcomment %}
+
+<!-- ── About Us Section ───────────────────────────────────────────────────────── -->
+<section class="about-section" style="padding-top:7rem">
+    <div class="container-fluid px-4">
+        <div class="row g-5 align-items-center mb-5">
+            <div class="col-lg-6">
+                <div class="section-eyebrow">About CourtVision AI</div>
+                <h2 class="section-title" style="font-size:1.9rem;margin-bottom:1.25rem">
+                    Bringing AI to Indian Commercial Courts
+                </h2>
+                <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.8;margin-bottom:1rem">
+                    CourtVision AI is an AI-powered legal research platform designed specifically for Indian commercial court practitioners — judges, advocates, court clerks, and legal researchers.
+                </p>
+                <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.8;margin-bottom:1rem">
+                    Our platform leverages the latest in large language model technology — Groq's LLaMA 4 Scout — combined with LangGraph orchestration and FAISS vector search to deliver instant, comprehensive analysis of complex legal documents.
+                </p>
+                <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.8">
+                    What used to take hours of manual reading can now be accomplished in seconds. Upload a judgment, get a structured AI summary, search semantically, and query the document in plain English — or in Hindi and Tamil.
+                </p>
+            </div>
+            <div class="col-lg-6" style="padding-top:1rem">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-bullseye"></i></div>
+                            <div style="font-family:'Playfair Display',serif;font-weight:600;color:var(--text);margin-bottom:6px">Mission</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Democratize access to legal intelligence for every court professional in India.</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-eye"></i></div>
+                            <div style="font-family:'Playfair Display',serif;font-weight:600;color:var(--text);margin-bottom:6px">Vision</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">A future where every legal professional has an AI research partner available 24/7.</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-shield-alt"></i></div>
+                            <div style="font-family:'Playfair Display',serif;font-weight:600;color:var(--text);margin-bottom:6px">Privacy</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Documents stored securely. No data shared with third parties. Your research stays yours.</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-code-branch"></i></div>
+                            <div style="font-family:'Playfair Display',serif;font-weight:600;color:var(--text);margin-bottom:6px">Open</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Built with open-source technologies — Django, LangGraph, FAISS, and Groq API.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Platform highlights timeline -->
+        <div class="row g-4">
+            <div class="col-12">
+                <hr class="gold-divider">
+                <div class="section-eyebrow mt-4 mb-3">Platform Highlights</div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-item">
+                    <div><div class="timeline-dot"></div></div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px">Full-Document AI Summarization</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Unlike tools that truncate to 4000 chars, our map-reduce pipeline processes every single page of your document before generating the summary.</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div><div class="timeline-dot"></div></div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px">Permanent Translation Cache</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Translated content is stored in the database via SHA-256 hash. Never translated twice — instant retrieval on repeat access.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-item">
+                    <div><div class="timeline-dot"></div></div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px">Role-Based Access</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Superusers manage the document library. All authenticated users can view, search, and research — a clean separation of responsibilities.</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div><div class="timeline-dot"></div></div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px">Persistent Research History</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Every research query and its complete LLM answer is saved permanently. Search, revisit, and build on past research.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="timeline-item">
+                    <div><div class="timeline-dot"></div></div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px">Embedded PDF Viewer</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">PDF.js renders court documents directly in the browser — page navigation, zoom, no iframe connection issues.</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div><div class="timeline-dot"></div></div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px">Deployed on AWS EC2</div>
+                        <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">Production-grade deployment with Nginx + Gunicorn on AWS EC2 with swap space for ML model stability.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Team Section ───────────────────────────────────────────────────────────── -->
+<section class="team-section">
+    <div class="container-fluid px-4">
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">The Builders</div>
+            <h2 class="section-title" style="font-size:2rem">Meet the Team</h2>
+            <p style="color:var(--text-muted);font-size:0.9rem;max-width:460px;margin:0.75rem auto 0">
+                Three passionate developers who built CourtVision AI from scratch.
+            </p>
+        </div>
+        <div class="row g-4 justify-content-center">
+
+            <!-- Kartik Batra -->
+            <div class="col-md-6 col-lg-4">
+                <div class="team-card">
+                    <div class="team-avatar">KB</div>
+                    <div class="team-name">Kartik Batra</div>
+                    <div class="team-role">AI Architect</div>
+                    <div class="team-bio">
+                        Architected the core AI pipeline including LangGraph, FAISS vector store, and Groq API. Built the document upload system, AI summarization pipeline, and semantic search interface.
+                    </div>
+                    <div class="team-social">
+                        <a href="#" class="social-btn" title="GitHub"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-btn" title="Email"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Harshpreet Singh -->
+            <div class="col-md-6 col-lg-4">
+                <div class="team-card">
+                    <div class="team-avatar">HS</div>
+                    <div class="team-name">Harshpreet Singh</div>
+                    <div class="team-role">UI & Frontend Developer</div>
+                    <div class="team-bio">
+                        Crafted the entire user interface — the design system, responsive layouts, notes system, and multilingual UI. Implemented the AWS EC2 deployment infrastructure.
+                    </div>
+                    <div class="team-social">
+                        <a href="#" class="social-btn" title="GitHub"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-btn" title="Email"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medhavi Anand -->
+            <div class="col-md-6 col-lg-4">
+                <div class="team-card">
+                    <div class="team-avatar">MA</div>
+                    <div class="team-name">Medhavi Anand</div>
+                    <div class="team-role">Full Stack Developer</div>
+                    <div class="team-bio">
+                        Led backend development with Django and designed the complete data model. Built the document management system, research query interface, and multilingual translation pipeline.
+                    </div>
+                    <div class="team-social">
+                        <a href="#" class="social-btn" title="GitHub"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-btn" title="Email"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Built with pride -->
+        <div class="text-center mt-5">
+            <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:20px;padding:0.6rem 1.5rem;font-size:0.82rem;color:var(--text-muted)">
+                <i class="fas fa-code" style="color:var(--gold)"></i>
+                Built with <span style="color:#e74c3c">❤</span> in India
+                <span style="opacity:0.4">·</span>
+                <i class="fas fa-gavel" style="color:var(--gold)"></i>
+                For Indian Commercial Courts
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Contact Section ────────────────────────────────────────────────────────── -->
+<section class="contact-section">
+    <div class="container-fluid px-4">
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">Reach Out</div>
+            <h2 class="section-title" style="font-size:2rem">Contact Us</h2>
+            <p style="color:var(--text-muted);font-size:0.9rem;max-width:440px;margin:0.75rem auto 0">
+                Questions, feedback, collaboration requests — we'd love to hear from you.
+            </p>
+        </div>
+
+        <div class="row g-5 justify-content-center">
+
+            <!-- Contact form -->
+            <div class="col-lg-7">
+                <div class="contact-form-card">
+                    <div style="background:rgba(201,168,76,0.05);border-bottom:1px solid var(--border);padding:1.25rem 1.5rem">
+                        <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                            <i class="fas fa-paper-plane me-2"></i>Send a Message
+                        </span>
+                    </div>
+                    <div style="padding:2rem">
+                        {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} mb-4">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %} me-2"></i>
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Full Name <span style="color:#e74c3c">*</span></label>
+                                    <input type="text" name="name"
+                                           value="{{ post.name|default:'' }}"
+                                           class="form-control" placeholder="Your full name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Address <span style="color:#e74c3c">*</span></label>
+                                    <input type="email" name="email"
+                                           value="{{ post.email|default:'' }}"
+                                           class="form-control" placeholder="your@email.com" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Subject <span style="color:#e74c3c">*</span></label>
+                                <select name="subject" class="form-control form-select">
+                                    <option value="" disabled {% if not post.subject %}selected{% endif %}>Select a subject…</option>
+                                    <option value="General Inquiry" {% if post.subject == 'General Inquiry' %}selected{% endif %}>General Inquiry</option>
+                                    <option value="Technical Support" {% if post.subject == 'Technical Support' %}selected{% endif %}>Technical Support</option>
+                                    <option value="Feature Request" {% if post.subject == 'Feature Request' %}selected{% endif %}>Feature Request</option>
+                                    <option value="Collaboration" {% if post.subject == 'Collaboration' %}selected{% endif %}>Collaboration</option>
+                                    <option value="Bug Report" {% if post.subject == 'Bug Report' %}selected{% endif %}>Bug Report</option>
+                                    <option value="Other" {% if post.subject == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">Message <span style="color:#e74c3c">*</span></label>
+                                <textarea name="message" class="form-control" rows="6"
+                                          placeholder="Tell us how we can help you…" required>{{ post.message|default:'' }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-gold w-100 py-2" style="font-size:0.9rem">
+                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact info sidebar -->
+            <div class="col-lg-4">
+                <div style="position:sticky;top:80px">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <span style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px">
+                                <i class="fas fa-info-circle me-2"></i>Contact Information
+                            </span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="contact-info-item">
+                                <div class="contact-info-icon"><i class="fas fa-map-marker-alt"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:2px">Location</div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted)">New Delhi, India</div>
+                                </div>
+                            </div>
+                            <div class="contact-info-item">
+                                <div class="contact-info-icon"><i class="fas fa-envelope"></i></div>
+                                <a href="mailto:courtvision.ai.jmit@gmail.com" style="text-decoration:none">
+                                    <div>
+                                        <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:2px">Email</div>
+                                        <div style="font-size:0.78rem;color:var(--gold)">courtvision.ai.jmit@gmail.com</div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="contact-info-item">
+                                <div class="contact-info-icon"><i class="fab fa-github"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:2px">GitHub</div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted)">github.com/courtvision-ai</div>
+                                </div>
+                            </div>
+                            <div class="contact-info-item">
+                                <div class="contact-info-icon"><i class="fas fa-clock"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:2px">Response Time</div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted)">Within 24–48 hours</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ── Public Footer ──────────────────────────────────────────────────────────── -->
+{% if not user.is_authenticated %}
+<footer style="background:rgba(10,22,40,0.97);border-top:1px solid var(--border);padding:2rem 0">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div style="font-size:0.78rem;color:var(--slate)">&copy; {% now "Y" %} CourtVision AI</div>
+        <div style="display:flex;gap:1.25rem">
+            <a href="{% url 'pages:home' %}" style="font-size:0.78rem;color:var(--slate);text-decoration:none">Home</a>
+            <a href="{% url 'pages:contact' %}" style="font-size:0.78rem;color:var(--gold);text-decoration:none">Contact</a>
+            <a href="{% url 'authentication:login' %}" style="font-size:0.78rem;color:var(--slate);text-decoration:none">Sign In</a>
+        </div>
+    </div>
+</footer>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% block title %}CourtVision AI {% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Hero ──────────────────────────────────────────────────────────────────── */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 60% 40%, rgba(201,168,76,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 10% 80%, rgba(29,52,97,0.7) 0%, transparent 50%),
+        var(--navy);
+}
+.hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+}
+.hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 20px; padding: 6px 16px; font-size: 0.78rem;
+    color: var(--gold); font-weight: 600; letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+}
+.hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-weight: 700; line-height: 1.15;
+    color: var(--text); margin-bottom: 1.25rem;
+}
+.hero-title .highlight {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-sub {
+    font-size: 1.05rem; color: var(--text-muted);
+    line-height: 1.75; max-width: 540px; margin-bottom: 2rem;
+}
+.hero-cta {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+}
+.btn-hero-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--navy); font-weight: 700; font-size: 0.95rem;
+    padding: 0.75rem 1.75rem; border-radius: 10px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s; border: none;
+}
+.btn-hero-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,0.4); color: var(--navy); text-decoration: none; }
+.btn-hero-secondary {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text); font-weight: 600; font-size: 0.95rem;
+    padding: 0.75rem 1.75rem; border-radius: 10px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;
+}
+.btn-hero-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text); text-decoration: none; }
+
+/* ── Floating card visual ───────────────────────────────────────────────────── */
+.hero-visual {
+    position: relative;
+}
+.mock-card {
+    background: rgba(17,34,64,0.9);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 14px; padding: 1.5rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.mock-card-inner {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 1rem; margin-top: 0.75rem;
+}
+.mock-line { height: 8px; border-radius: 4px; margin-bottom: 8px; }
+.mock-line.gold { background: linear-gradient(90deg, var(--gold), transparent); width: 70%; }
+.mock-line.dim { background: rgba(255,255,255,0.08); }
+.mock-line.dim.w50 { width: 50%; }
+.mock-line.dim.w80 { width: 80%; }
+.mock-line.dim.w60 { width: 60%; }
+.mock-line.dim.w40 { width: 40%; }
+.float-badge {
+    position: absolute; background: rgba(17,34,64,0.95);
+    border: 1px solid rgba(201,168,76,0.3); border-radius: 10px;
+    padding: 0.6rem 0.9rem; font-size: 0.75rem; font-weight: 600;
+    backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    white-space: nowrap;
+}
+.float-badge.top-right { top: -20px; right: -20px; color: #2ecc71; }
+.float-badge.bottom-left { bottom: -20px; left: -20px; color: var(--gold); }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+/* ── Stats bar ──────────────────────────────────────────────────────────────── */
+.stats-bar {
+    background: rgba(17,34,64,0.8);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 0;
+}
+.stat-item { text-align: center; }
+.stat-item .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 2rem; font-weight: 700; color: var(--gold); line-height: 1;
+}
+.stat-item .lbl { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.5px; }
+
+/* ── Features ───────────────────────────────────────────────────────────────── */
+.features-section { padding: 5rem 0; }
+.feature-card {
+    background: rgba(17,34,64,0.6);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 2rem;
+    height: 100%; transition: all 0.2s;
+}
+.feature-card:hover { border-color: rgba(201,168,76,0.4); transform: translateY(-4px); background: rgba(17,34,64,0.9); }
+.feature-icon {
+    width: 52px; height: 52px;
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 12px; display: flex; align-items: center;
+    justify-content: center; font-size: 1.3rem; color: var(--gold);
+    margin-bottom: 1.1rem;
+}
+.feature-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 0.6rem; }
+.feature-desc { font-size: 0.83rem; color: var(--text-muted); line-height: 1.7; }
+
+/* ── How it works ───────────────────────────────────────────────────────────── */
+.how-section { padding: 5rem 0; background: rgba(10,22,40,0.6); }
+.step-number {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--navy); font-weight: 800; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-right: 1.1rem;
+}
+.step-connector {
+    width: 2px; background: rgba(201,168,76,0.2);
+    margin: 0 auto; height: 40px;
+}
+
+/* ── Tech stack ────────────────────────────────────────────────────────────── */
+.tech-section { padding: 4rem 0; }
+.tech-pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 0.9rem 1.25rem;
+    text-align: center; transition: all 0.2s;
+}
+.tech-pill:hover { border-color: rgba(201,168,76,0.4); background: rgba(201,168,76,0.05); }
+.tech-pill .tech-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+.tech-pill .tech-role { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ── CTA section ────────────────────────────────────────────────────────────── */
+.cta-section {
+    padding: 5rem 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(201,168,76,0.08) 0%, transparent 65%);
+}
+.cta-card {
+    background: rgba(17,34,64,0.8);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 20px; padding: 3.5rem;
+    text-align: center;
+}
+
+/* ── Public navbar (unauthenticated) ─────────────────────────────────────────── */
+.public-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(10,22,40,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.85rem 0;
+    transition: all 0.3s;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Override main-content padding for full-page layout -->
+<style>.main-content { padding: 0 !important; }</style>
+
+<!-- ── Public Navbar (unauthenticated only) ─────────────────────────────────── -->
+{% if not user.is_authenticated %}
+<nav class="public-nav">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="{% url 'pages:home' %}">
+            <div class="brand-icon"><i class="fas fa-balance-scale"></i></div>
+            <div>CourtVision AI<span class="brand-sub">Commercial Courts Intelligence</span></div>
+        </a>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'pages:home' %}" style="font-size:0.95rem;color:var(--text-muted);text-decoration:none;transition:color 0.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">Home</a>
+            <a href="{% url 'pages:contact' %}" style="font-size:0.95rem;color:var(--text-muted);text-decoration:none;transition:color 0.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">Contact Us</a>
+            <a href="{% url 'authentication:login' %}" style="font-size:0.95rem;color:var(--text-muted);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">Sign In</a>
+            <a href="{% url 'authentication:register' %}" class="btn-hero-primary" style="font-size:0.95rem;padding:0.45rem 1.1rem">
+                Get Started <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</nav>
+{% endif %}
+
+<!-- ── Hero ────────────────────────────────────────────────────────────────── -->
+<section class="hero" style="{% if not user.is_authenticated %}padding-top:80px{% endif %}">
+    <div class="container-fluid px-4 px-lg-5">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="hero-badge">
+                    <span class="pulse-dot"></span>
+                    AI-Powered Research Engine for Commercial Courts
+                </div>
+                <h1 class="hero-title">
+                    Legal Research,<br>
+                    Reimagined with<br>
+                    <span class="highlight">AI Intelligence</span>
+                </h1>
+                <p class="hero-sub">
+                    CourtVision AI brings cutting-edge artificial intelligence to Indian commercial court research. Upload judgments, get instant AI summaries, search semantically, and query your documents in natural language.
+                </p>
+                <div class="hero-cta">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'documents:list' %}" class="btn-hero-primary">
+                        <i class="fas fa-folder-open"></i>Go to Documents
+                    </a>
+                    <a href="{% url 'documents:search' %}" class="btn-hero-secondary">
+                        <i class="fas fa-search"></i>Search Cases
+                    </a>
+                    {% else %}
+                    <a href="{% url 'authentication:register' %}" class="btn-hero-primary">
+                        <i class="fas fa-rocket"></i>Get Started
+                    </a>
+                    <a href="{% url 'authentication:login' %}" class="btn-hero-secondary">
+                        <i class="fas fa-sign-in-alt"></i>Sign In
+                    </a>
+                    {% endif %}
+                </div>
+                <div style="margin-top:2rem;display:flex;gap:1.5rem;flex-wrap:wrap">
+                    <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px">
+                        <i class="fas fa-check-circle" style="color:#2ecc71"></i>AI Summarization
+                    </div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px">
+                        <i class="fas fa-check-circle" style="color:#2ecc71"></i>Semantic Search
+                    </div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px">
+                        <i class="fas fa-check-circle" style="color:#2ecc71"></i>Hindi & Tamil Support
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hero-visual" style="padding:2rem">
+                    <div class="mock-card">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+                            <div style="width:32px;height:32px;background:rgba(201,168,76,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gold)"><i class="fas fa-gavel" style="font-size:0.85rem"></i></div>
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:600;color:var(--text)">Anil Kumar Pitti vs Comsol Energy</div>
+                                <div style="font-size:0.7rem;color:var(--gold);font-family:'IBM Plex Mono',monospace">RFA(COMM) 479/2025</div>
+                            </div>
+                            <span style="margin-left:auto;background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid rgba(46,204,113,0.3);border-radius:20px;padding:2px 8px;font-size:0.65rem;font-weight:600">AI Ready</span>
+                        </div>
+                        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-bottom:0.5rem"><i class="fas fa-robot me-1"></i>AI Summary</div>
+                        <div class="mock-card-inner">
+                            <div class="mock-line gold"></div>
+                            <div class="mock-line dim w80"></div>
+                            <div class="mock-line dim w60"></div>
+                            <div class="mock-line dim w80"></div>
+                            <div class="mock-line dim w50"></div>
+                            <div class="mock-line dim w40"></div>
+                        </div>
+                        <div style="margin-top:1rem;display:flex;gap:6px">
+                            <div style="flex:1;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:7px;padding:6px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--navy)"><i class="fas fa-eye me-1"></i>View Summary</div>
+                            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:6px 10px;font-size:0.7rem;color:var(--text-muted)"><i class="fas fa-search"></i></div>
+                        </div>
+                    </div>
+                    <div class="float-badge top-right">
+                        <span class="pulse-dot"></span>AI Processing Complete
+                    </div>
+                    <div class="float-badge bottom-left">
+                        <i class="fas fa-database me-1" style="color:var(--gold)"></i>FAISS Indexed · 12 chunks
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Stats bar ─────────────────────────────────────────────────────────────── -->
+<div class="stats-bar">
+    <div class="container-fluid px-4">
+        <div class="row g-4 justify-content-center">
+            {% if stats %}
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="num">{{ stats.total_docs }}</div>
+                    <div class="lbl">Documents Uploaded</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="num">{{ stats.analysed_docs }}</div>
+                    <div class="lbl">AI Summaries Generated</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="num">{{ stats.total_queries }}</div>
+                    <div class="lbl">Research Queries Run</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-6 col-md-3">
+                <div class="stat-item"><div class="num">3</div><div class="lbl">AI Technologies</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item"><div class="num">3</div><div class="lbl">Languages Supported</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item"><div class="num">∞</div><div class="lbl">Documents Supported</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item"><div class="num">100%</div><div class="lbl">Full-Text AI Analysis</div></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ── Features ──────────────────────────────────────────────────────────────── -->
+<section class="features-section">
+    <div class="container-fluid px-4">
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">Platform Features</div>
+            <h2 class="section-title" style="font-size:2rem">Everything you need for legal research</h2>
+            <p style="color:var(--text-muted);font-size:0.9rem;max-width:520px;margin:0.75rem auto 0">Built specifically for Indian commercial courts with AI-first architecture.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                    <div class="feature-title">AI Document Summarization</div>
+                    <div class="feature-desc">Full document map-reduce pipeline using LangGraph and Groq LLaMA 4 Scout. Every page summarized — no truncation. Structured legal findings extracted automatically.</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-database"></i></div>
+                    <div class="feature-title">Semantic Vector Search</div>
+                    <div class="feature-desc">FAISS-powered vector store indexes every chunk of your documents. Ask questions in plain English and get answers grounded in the exact document passages.</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-search"></i></div>
+                    <div class="feature-title">Advanced Case Search</div>
+                    <div class="feature-desc">Filter by document type, court, filing date, status. Live AJAX search with keyword highlighting. All cases instantly accessible.</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-language"></i></div>
+                    <div class="feature-title">Multilingual Support</div>
+                    <div class="feature-desc">Full interface support for English, Hindi (हिन्दी), and Tamil (தமிழ்). AI summaries and research answers translated on demand and cached permanently.</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-sticky-note"></i></div>
+                    <div class="feature-title">Legal Notes</div>
+                    <div class="feature-desc">Take notes directly linked to cases. Pin, tag with colors, search, and access them alongside your research. Quick-note panel for instant capture.</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-file-pdf"></i></div>
+                    <div class="feature-title">Embedded PDF Viewer</div>
+                    <div class="feature-desc">View original court documents directly in the browser using PDF.js — page navigation, zoom controls, no downloads required. Alongside AI summary.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── How it works ───────────────────────────────────────────────────────────── -->
+<section class="how-section">
+    <div class="container-fluid px-4">
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">The Pipeline</div>
+            <h2 class="section-title" style="font-size:2rem">How CourtVision AI works</h2>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                {% for step in steps %}
+                <div class="d-flex align-items-start mb-3">
+                    <div class="step-number">{{ forloop.counter }}</div>
+                    <div style="padding-top:8px">
+                        <div style="font-weight:600;color:var(--text);margin-bottom:3px;font-size:0.95rem">{{ step.title }}</div>
+                        <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">{{ step.desc }}</div>
+                    </div>
+                </div>
+                {% if not forloop.last %}<div style="margin-left:22px"><div class="step-connector"></div></div>{% endif %}
+                {% empty %}
+                {% for step in "12345" %}
+                {% endfor %}
+                <div class="d-flex align-items-start mb-3">
+                    <div class="step-number">1</div>
+                    <div style="padding-top:8px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">Upload Court Document</div><div style="font-size:0.82rem;color:var(--text-muted)">Superusers upload PDFs or text files. All users instantly see them in the library.</div></div>
+                </div>
+                <div style="margin-left:22px"><div class="step-connector"></div></div>
+                <div class="d-flex align-items-start mb-3">
+                    <div class="step-number">2</div>
+                    <div style="padding-top:8px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">AI Extracts & Indexes</div><div style="font-size:0.82rem;color:var(--text-muted)">Full text is extracted, split into chunks, and indexed in a FAISS vector store using sentence transformers.</div></div>
+                </div>
+                <div style="margin-left:22px"><div class="step-connector"></div></div>
+                <div class="d-flex align-items-start mb-3">
+                    <div class="step-number">3</div>
+                    <div style="padding-top:8px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">LangGraph Summarization</div><div style="font-size:0.82rem;color:var(--text-muted)">A map-reduce pipeline summarizes every chunk independently, then merges them into one comprehensive legal summary via Groq LLaMA 4.</div></div>
+                </div>
+                <div style="margin-left:22px"><div class="step-connector"></div></div>
+                <div class="d-flex align-items-start mb-3">
+                    <div class="step-number">4</div>
+                    <div style="padding-top:8px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">Research with Natural Language</div><div style="font-size:0.82rem;color:var(--text-muted)">Ask any legal question. FAISS retrieves the most relevant passages. Groq generates a precise answer grounded in the document.</div></div>
+                </div>
+                <div style="margin-left:22px"><div class="step-connector"></div></div>
+                <div class="d-flex align-items-start">
+                    <div class="step-number">5</div>
+                    <div style="padding-top:8px"><div style="font-weight:600;color:var(--text);margin-bottom:3px">Translate & Store Permanently</div><div style="font-size:0.82rem;color:var(--text-muted)">Summaries and answers translated to Hindi or Tamil via MyMemory API, cached permanently in the database — never re-translated.</div></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Tech stack ─────────────────────────────────────────────────────────────── -->
+<section class="tech-section">
+    <div class="container-fluid px-4">
+        <div class="text-center mb-4">
+            <div class="section-eyebrow">Built With</div>
+            <h2 class="section-title" style="font-size:1.6rem">Technology Stack</h2>
+        </div>
+        <div class="row g-3 justify-content-center">
+            {% for tech in "a b c d e f g h" %}{% endfor %}
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="tech-pill"><div style="font-size:1.4rem;margin-bottom:6px">🐍</div><div class="tech-name">Django</div><div class="tech-role">Web Framework</div></div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="tech-pill"><div style="font-size:1.4rem;margin-bottom:6px">🔗</div><div class="tech-name">LangGraph</div><div class="tech-role">AI Orchestration</div></div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="tech-pill"><div style="font-size:1.4rem;margin-bottom:6px">🗄️</div><div class="tech-name">FAISS</div><div class="tech-role">Vector Search</div></div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="tech-pill"><div style="font-size:1.4rem;margin-bottom:6px">⚡</div><div class="tech-name">Groq API</div><div class="tech-role">LLaMA 4 Scout</div></div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="tech-pill"><div style="font-size:1.4rem;margin-bottom:6px">🔍</div><div class="tech-name">Sentence Transformers</div><div class="tech-role">Embeddings</div></div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="tech-pill"><div style="font-size:1.4rem;margin-bottom:6px">☁️</div><div class="tech-name">AWS EC2</div><div class="tech-role">Deployment</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── CTA ───────────────────────────────────────────────────────────────────── -->
+{% if not user.is_authenticated %}
+<section class="cta-section">
+    <div class="container-fluid px-4">
+        <div class="cta-card">
+            <div class="section-eyebrow" style="margin-bottom:0.75rem">Get Started Today</div>
+            <h2 style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--text);margin-bottom:1rem">
+                Ready to transform your legal research?
+            </h2>
+            <p style="color:var(--text-muted);font-size:0.95rem;max-width:480px;margin:0 auto 2rem;line-height:1.7">
+                Join CourtVision AI and experience the future of commercial court research — faster, smarter, multilingual.
+            </p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{% url 'authentication:register' %}" class="btn-hero-primary">
+                    <i class="fas fa-user-plus"></i>Create Free Account
+                </a>
+                <a href="{% url 'pages:contact' %}" class="btn-hero-secondary">
+                    <i class="fas fa-envelope"></i>Contact Us
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if not user.is_authenticated %}
+<footer style="background:rgba(10,22,40,0.97);border-top:1px solid var(--border);padding:2rem 0">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div style="font-size:0.78rem;color:var(--slate)">&copy; {% now "Y" %} CourtVision AI</div>
+        <div style="display:flex;gap:1.25rem">
+            <a href="{% url 'pages:home' %}" style="font-size:0.78rem;color:var(--slate);text-decoration:none">Home</a>
+            <a href="{% url 'pages:contact' %}" style="font-size:0.78rem;color:var(--slate);text-decoration:none">Contact</a>
+            <a href="{% url 'authentication:login' %}" style="font-size:0.78rem;color:var(--slate);text-decoration:none">Sign In</a>
+        </div>
+    </div>
+</footer>
+{% endif %}
+{% endblock %}

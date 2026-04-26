@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'documents',
     'research',
     'notes',
+    'pages',
 ]
 
 MIDDLEWARE = [
@@ -91,7 +92,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/documents/'
-LOGOUT_REDIRECT_URL = '/auth/login/'
+LOGOUT_REDIRECT_URL = '/'
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"

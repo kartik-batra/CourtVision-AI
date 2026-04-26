@@ -50,7 +50,7 @@ def register_view(request):
 def logout_view(request):
     logout(request)
     messages.info(request, 'You have been logged out successfully.')
-    return redirect('authentication:login')
+    return redirect('pages:home')
 
 
 @login_required
